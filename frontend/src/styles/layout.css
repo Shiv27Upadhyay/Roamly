@@ -1,0 +1,281 @@
+/**
+ * Layout, Grids, Navigation & Responsive Utilities for Roamly
+ */
+
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+.container-narrow {
+  width: 100%;
+  max-width: var(--max-width-narrow);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+main.main-content {
+  flex: 1;
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-16);
+}
+
+/* =========================================
+   1. NAVBAR
+   ========================================= */
+.site-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: rgba(250, 247, 242, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.site-navbar .nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-serif);
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.nav-brand .brand-dot {
+  color: var(--color-terracotta);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  list-style: none;
+}
+
+.nav-link {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  position: relative;
+  padding: 0.4rem 0;
+  transition: color var(--transition-fast);
+}
+
+.nav-link:hover, .nav-link.active {
+  color: var(--color-ink);
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--color-terracotta);
+}
+
+.nav-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  border: 2px solid var(--color-border);
+  transition: border-color var(--transition-fast);
+}
+
+.nav-user-avatar:hover {
+  border-color: var(--color-terracotta);
+}
+
+.nav-mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--color-ink);
+  cursor: pointer;
+  padding: var(--space-2);
+}
+
+/* Mobile Nav Drawer */
+.mobile-nav-menu {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-ivory);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mobile-nav-menu.open {
+  display: flex;
+}
+
+/* =========================================
+   2. FOOTER
+   ========================================= */
+.site-footer {
+  background-color: var(--color-ink);
+  color: var(--color-ivory);
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-10);
+  border-top: 1px solid var(--color-ink);
+}
+
+.site-footer p {
+  color: rgba(250, 247, 242, 0.7);
+}
+
+.footer-top {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
+}
+
+.footer-brand h3 {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  color: var(--color-ivory);
+  margin-bottom: var(--space-2);
+}
+
+.footer-brand .tagline {
+  color: var(--color-terracotta);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  margin-bottom: var(--space-3);
+}
+
+.footer-nav-col h4 {
+  font-family: var(--font-sans);
+  font-size: 0.825rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-sand);
+  margin-bottom: var(--space-4);
+}
+
+.footer-nav-col ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.footer-nav-col a {
+  color: rgba(250, 247, 242, 0.75);
+  font-size: 0.925rem;
+}
+
+.footer-nav-col a:hover {
+  color: var(--color-ivory);
+}
+
+.footer-bottom {
+  padding-top: var(--space-8);
+  border-top: 1px solid rgba(250, 247, 242, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: rgba(250, 247, 242, 0.5);
+}
+
+/* =========================================
+   3. GRIDS & PAGE LAYOUTS
+   ========================================= */
+.grid-destinations {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: var(--space-6);
+}
+
+.grid-trips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-6);
+}
+
+/* Page Header Banner */
+.page-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-header .eyebrow {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-terracotta);
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+.page-header h1 {
+  margin-bottom: var(--space-3);
+}
+
+.page-header p.lead {
+  font-size: 1.15rem;
+  max-width: 680px;
+  color: var(--color-ink-muted);
+}
+
+/* =========================================
+   4. RESPONSIVE BREAKPOINTS
+   ========================================= */
+@media (max-width: 1024px) {
+  .footer-top {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-mobile-toggle {
+    display: block;
+  }
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+  .footer-bottom {
+    flex-direction: column;
+    gap: var(--space-4);
+    text-align: center;
+  }
+  .grid-destinations, .grid-trips {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .container, .container-narrow {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  h1 {
+    font-size: 2.1rem;
+  }
+}

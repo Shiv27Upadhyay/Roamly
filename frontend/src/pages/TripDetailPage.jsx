@@ -1,0 +1,536 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  Calendar,
+  MapPin,
+  DollarSign,
+  Heart,
+  MessageSquare,
+  Edit3,
+  Trash2,
+  ArrowLeft,
+  Layers,
+  Send,
+  User,
+  Clock
+} from 'lucide-react';
+import { api, getActiveUserId } from '../services/api';
+import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../components/common/ConfirmModal';
+import { DetailSkeleton } from '../components/common/LoadingSkeleton';
+import ErrorBanner from '../components/common/ErrorBanner';
+
+export default function TripDetailPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToast } = useToast();
+  const currentUserId = getActiveUserId();
+
+  const [trip, setTrip] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Likes & Interactions
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
+
+  // Comments
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState('');
+
+  // Delete Trip Modal
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const fetchTrip = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.getTripById(id);
+      const data = res.data;
+      setTrip(data);
+      setIsLiked(Boolean(data.is_liked));
+      setLikesCount(data.likes_count || 0);
+      setComments(data.comments || []);
+    } catch (err) {
+      setError(err.message || 'Itinerary not found.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrip();
+  }, [id]);
+
+  const handleToggleLike = async () => {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    try {
+      const res = await api.toggleTripLike(id);
+      setIsLiked(res.data.liked);
+      setLikesCount(res.data.likes_count);
+      if (res.data.liked) {
+        addToast(`You liked "${trip.title}"`, 'success');
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to update like.', 'error');
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const handleDeleteTrip = async () => {
+    setDeleteLoading(true);
+    try {
+      await api.deleteTrip(id);
+      addToast(`Trip "${trip.title}" deleted successfully.`, 'info');
+      navigate('/trips');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete trip.', 'error');
+    } finally {
+      setDeleteLoading(false);
+      setDeleteModalOpen(false);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim() || newComment.trim().length < 2) {
+      setCommentError('Comment must be at least 2 characters long.');
+      return;
+    }
+    setCommentError('');
+    setCommentSubmitting(true);
+    try {
+      const res = await api.addTripComment(id, newComment.trim());
+      setComments((prev) => [...prev, res.data]);
+      setNewComment('');
+      addToast('Comment published!', 'success');
+    } catch (err) {
+      setCommentError(err.message || 'Failed to post comment.');
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await api.deleteComment(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      addToast('Comment deleted.', 'info');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete comment.', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-16)' }}>
+        <DetailSkeleton />
+      </div>
+    );
+  }
+
+  if (error || !trip) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--space-12)', textAlign: 'center' }}>
+        <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+          <h2>Itinerary Not Found</h2>
+          <p style={{ margin: '16px 0 24px', color: 'var(--color-ink-muted)' }}>
+            {error || `We couldn't locate a trip with identifier #${id}.`}
+          </p>
+          <Link to="/trips" className="btn btn-primary btn-sm">
+            <ArrowLeft size={16} />
+            <span>Back to All Trips</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Group stops by day number
+  const stopsByDay = (trip.stops || []).reduce((acc, stop) => {
+    const day = stop.day_number || 1;
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(stop);
+    return acc;
+  }, {});
+
+  const isOwner = trip.user_id === currentUserId || trip.is_owner;
+
+  return (
+    <div style={{ paddingBottom: 'var(--space-20)' }}>
+      {/* Top Breadcrumb & Actions Bar */}
+      <div className="container" style={{ paddingTop: 'var(--space-4)', paddingBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <Link to="/trips" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', color: 'var(--color-ink-muted)' }}>
+          <ArrowLeft size={16} />
+          <span>Back to Itineraries</span>
+        </Link>
+
+        {/* Owner Controls */}
+        {isOwner && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link to={`/trips/${trip.id}/edit`} className="btn btn-outline btn-sm">
+              <Edit3 size={15} />
+              <span>Edit Trip</span>
+            </Link>
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="btn btn-danger btn-sm"
+              title="Delete this itinerary"
+            >
+              <Trash2 size={15} />
+              <span>Delete</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Hero Banner */}
+      <div style={{ position: 'relative', width: '100%', minHeight: '380px', overflow: 'hidden', background: 'var(--color-ink)' }}>
+        <img
+          src={trip.cover_image || 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80'}
+          alt={trip.title}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.85, position: 'absolute', inset: 0 }}
+          onError={(e) => {
+            e.target.src = 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80';
+          }}
+        />
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to top, rgba(28,36,33,0.92) 0%, rgba(28,36,33,0.3) 60%, transparent 100%)'
+        }} />
+
+        <div className="container" style={{ position: 'relative', zIndex: 2, paddingTop: '160px', paddingBottom: '36px', color: 'var(--color-ivory)' }}>
+          {trip.destination_title && (
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              <Link to={`/destinations/${trip.destination_id}`} className="badge badge-sand" style={{ background: 'rgba(250,247,242,0.95)', color: 'var(--color-ink)' }}>
+                <MapPin size={13} color="var(--color-terracotta)" />
+                <span>{trip.destination_title}, {trip.destination_country}</span>
+              </Link>
+            </div>
+          )}
+
+          <h1 style={{ color: 'var(--color-ivory)', marginBottom: '12px' }}>
+            {trip.title}
+          </h1>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', fontSize: '0.95rem', color: 'rgba(250,247,242,0.85)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Calendar size={16} color="var(--color-terracotta)" />
+              <span>{trip.start_date} to {trip.end_date}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <DollarSign size={16} color="var(--color-sage)" />
+              <span>Budget: ${Number(trip.estimated_budget || 0).toLocaleString()} {trip.currency}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Layers size={16} />
+              <span>{trip.stops?.length || 0} Itinerary Stops</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Layout */}
+      <div className="container" style={{ paddingTop: 'var(--space-8)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.9fr) minmax(0, 1fr)', gap: 'var(--space-12)' }}>
+          {/* Left Column: Itinerary Stops & Journal */}
+          <div>
+            {/* Journal Notes */}
+            {trip.notes && (
+              <section style={{
+                background: 'var(--color-sand)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-6)',
+                marginBottom: 'var(--space-8)'
+              }}>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Traveler’s Journal Notes</h3>
+                <p style={{ fontSize: '1rem', lineHeight: '1.7', color: 'var(--color-ink)' }}>
+                  {trip.notes}
+                </p>
+              </section>
+            )}
+
+            {/* Day-by-Day Stops */}
+            <section style={{ marginBottom: 'var(--space-12)' }}>
+              <h2 style={{ fontSize: '1.75rem', marginBottom: 'var(--space-6)' }}>Day-by-Day Itinerary</h2>
+
+              {Object.keys(stopsByDay).length === 0 ? (
+                <div style={{ padding: '24px', background: '#FFFFFF', border: '1px dashed var(--color-border-dark)', borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--color-ink-muted)' }}>No stops added to this itinerary yet.</p>
+                </div>
+              ) : (
+                Object.keys(stopsByDay)
+                  .sort((a, b) => Number(a) - Number(b))
+                  .map((dayNum) => (
+                    <div key={dayNum} style={{ marginBottom: 'var(--space-8)' }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: 'var(--space-4)',
+                        paddingBottom: '8px',
+                        borderBottom: '2px solid var(--color-sand)'
+                      }}>
+                        <div style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: 'var(--color-terracotta)',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.85rem'
+                        }}>
+                          {dayNum}
+                        </div>
+                        <h3 style={{ fontSize: '1.35rem', margin: 0 }}>Day {dayNum}</h3>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {stopsByDay[dayNum].map((stop) => {
+                          let badgeClass = 'badge-sand';
+                          if (stop.category === 'Food') badgeClass = 'badge-ochre';
+                          if (stop.category === 'Culture') badgeClass = 'badge-terracotta';
+                          if (stop.category === 'Nature') badgeClass = 'badge-sage';
+
+                          return (
+                            <div
+                              key={stop.id}
+                              style={{
+                                background: '#FFFFFF',
+                                border: '1px solid var(--color-border)',
+                                borderRadius: 'var(--radius-sm)',
+                                padding: '16px',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-start',
+                                gap: '16px'
+                              }}
+                            >
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                  <span className={`badge ${badgeClass}`}>{stop.category}</span>
+                                  <h4 style={{ margin: 0, fontSize: '1.1rem' }}>{stop.place_name}</h4>
+                                </div>
+                                {stop.notes && (
+                                  <p style={{ fontSize: '0.9rem', color: 'var(--color-ink-muted)', marginTop: '4px' }}>
+                                    {stop.notes}
+                                  </p>
+                                )}
+                              </div>
+
+                              {stop.cost > 0 && (
+                                <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-ink)', whiteSpace: 'nowrap' }}>
+                                  ${Number(stop.cost).toLocaleString()}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))
+              )}
+
+              {/* Total Stops Cost Summary */}
+              {trip.stops && trip.stops.length > 0 && (
+                <div style={{
+                  background: 'var(--color-sand)',
+                  padding: '16px 20px',
+                  borderRadius: 'var(--radius-sm)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '0.95rem',
+                  marginTop: 'var(--space-6)'
+                }}>
+                  <span>Sum of scheduled stops:</span>
+                  <strong>${Number(trip.stops_total_cost || 0).toLocaleString()} {trip.currency}</strong>
+                </div>
+              )}
+            </section>
+
+            {/* Comments Discussion Section */}
+            <section style={{ paddingTop: 'var(--space-8)', borderTop: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 'var(--space-6)' }}>
+                <MessageSquare size={22} color="var(--color-terracotta)" />
+                <h3 style={{ margin: 0, fontSize: '1.5rem' }}>Traveler Notes &amp; Comments ({comments.length})</h3>
+              </div>
+
+              {/* New Comment Form */}
+              <form onSubmit={handleCommentSubmit} style={{ marginBottom: 'var(--space-8)' }}>
+                <div className="form-group">
+                  <label htmlFor="commentInput" className="form-label">
+                    Add a recommendation or question
+                  </label>
+                  <textarea
+                    id="commentInput"
+                    rows="3"
+                    className={`form-textarea ${commentError ? 'has-error' : ''}`}
+                    placeholder="Share an insider tip, dining spot, or question about this itinerary..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                  />
+                  {commentError && <div className="form-error">{commentError}</div>}
+                </div>
+                <button
+                  type="submit"
+                  disabled={commentSubmitting}
+                  className="btn btn-primary btn-sm"
+                >
+                  <Send size={14} />
+                  <span>{commentSubmitting ? 'Posting...' : 'Post Comment'}</span>
+                </button>
+              </form>
+
+              {/* Comments List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                {comments.length === 0 ? (
+                  <p style={{ color: 'var(--color-ink-muted)', fontStyle: 'italic' }}>
+                    No comments posted yet. Be the first to share your thoughts on this itinerary!
+                  </p>
+                ) : (
+                  comments.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '16px',
+                        display: 'flex',
+                        gap: '14px',
+                        alignItems: 'flex-start'
+                      }}
+                    >
+                      <img
+                        src={c.user_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80'}
+                        alt={c.user_name}
+                        style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <strong style={{ fontSize: '0.95rem' }}>{c.user_name}</strong>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
+                              @{c.user_username}
+                            </span>
+                          </div>
+
+                          {c.user_id === currentUserId && (
+                            <button
+                              onClick={() => handleDeleteComment(c.id)}
+                              style={{ color: 'var(--color-danger)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              title="Delete your comment"
+                            >
+                              <Trash2 size={13} />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <p style={{ fontSize: '0.925rem', color: 'var(--color-ink)', lineHeight: '1.5' }}>
+                          {c.content}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column: Author card & Quick info */}
+          <div>
+            {/* Author Profile Card */}
+            <div style={{
+              background: '#FFFFFF',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-6)',
+              marginBottom: 'var(--space-6)',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
+                <img
+                  src={trip.author_avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80'}
+                  alt={trip.author_name}
+                  style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--color-border)' }}
+                />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.2rem' }}>{trip.author_name}</h4>
+                  <div style={{ color: 'var(--color-ink-muted)', fontSize: '0.85rem' }}>
+                    @{trip.author_username}
+                  </div>
+                </div>
+              </div>
+
+              {trip.author_bio && (
+                <p style={{ fontSize: '0.9rem', color: 'var(--color-ink-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
+                  "{trip.author_bio}"
+                </p>
+              )}
+
+              {/* Like Interaction Button */}
+              <button
+                onClick={handleToggleLike}
+                disabled={likeLoading}
+                className={`btn ${isLiked ? 'btn-primary' : 'btn-outline'}`}
+                style={{ width: '100%' }}
+              >
+                <Heart size={18} fill={isLiked ? '#FFFFFF' : 'none'} strokeWidth={2.2} />
+                <span>{isLiked ? 'Liked this Trip' : 'Like Itinerary'} ({likesCount})</span>
+              </button>
+            </div>
+
+            {/* Destination Link Card */}
+            {trip.destination_id && (
+              <div style={{
+                background: 'var(--color-sand)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                padding: 'var(--space-5)'
+              }}>
+                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--color-terracotta)', fontWeight: 700, letterSpacing: '0.06em', marginBottom: '4px' }}>
+                  Destination Spotlight
+                </div>
+                <h4 style={{ fontSize: '1.15rem', marginBottom: '4px' }}>
+                  {trip.destination_title}
+                </h4>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-ink-muted)', marginBottom: '12px' }}>
+                  Learn more about seasons, budget tiers, and local attractions in {trip.destination_title}.
+                </p>
+                <Link to={`/destinations/${trip.destination_id}`} className="btn btn-outline btn-sm" style={{ background: '#FFFFFF' }}>
+                  View Destination Guide
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Delete Itinerary"
+        message={`Are you sure you want to permanently delete "${trip.title}"? All scheduled stops, likes, and comments associated with this trip will be removed.`}
+        confirmLabel="Delete Trip"
+        loading={deleteLoading}
+        onConfirm={handleDeleteTrip}
+        onCancel={() => setDeleteModalOpen(false)}
+      />
+    </div>
+  );
+}
