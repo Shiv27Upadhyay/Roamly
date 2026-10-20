@@ -1,0 +1,30 @@
+{
+  "name": "roamly-backend",
+  "version": "1.0.0",
+  "description": "Roamly Travel Discovery and Collaborative Trip-Planning Backend API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed": "node src/config/seed.js",
+    "test:api": "node test/api_test.js"
+  },
+  "keywords": [
+    "travel",
+    "itinerary",
+    "express",
+    "sqlite",
+    "rest-api"
+  ],
+  "author": "Roamly Team",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

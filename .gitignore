@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment files
+.env
+*/.env
+*.local
+
+# Database temporary files
+*.db-wal
+*.db-shm
+*.db-journal
+
+# OS files
+.DS_Store
+Thumbs.db
