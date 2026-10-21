@@ -54,7 +54,7 @@ backend/
 ## 3. Getting Started
 
 ### Prerequisites
-- **Node.js**: v22.0.0 or higher (v24.21.0 recommended)
+- **Node.js**: v22.5.0 or higher (v24.21.0 recommended; built-in native `node:sqlite` required)
 - **npm**: v10.0.0 or higher
 
 ### Installation & Environment
@@ -68,7 +68,11 @@ backend/
    ```
 3. Create environment file:
    ```bash
+   # Unix / macOS / PowerShell
    cp .env.example .env
+
+   # Windows Command Prompt
+   copy .env.example .env
    ```
    Default `.env` configuration:
    ```env
@@ -79,17 +83,21 @@ backend/
 
 ### Running the Server
 - **Development mode** (auto-restart with nodemon):
-  ```bash
-  npm run dev
-  ```
+   ```bash
+   npm run dev
+   ```
 - **Production mode**:
-  ```bash
-  npm start
-  ```
-- **Health Check**:
-  ```bash
-  curl http://localhost:5000/api/health
-  ```
+   ```bash
+   npm start
+   ```
+- **Service Verification**:
+   ```bash
+   # Root welcome & API metadata
+   curl http://localhost:5000/
+
+   # API health & active user context
+   curl http://localhost:5000/api/health
+   ```
 
 ---
 
@@ -143,6 +151,7 @@ Without an active authentication provider, requests resolve user identity via:
 
 | Method | Endpoint | Description | Auth / Owner Required |
 | :--- | :--- | :--- | :---: |
+| `GET` | `/` | Root welcome endpoint returning API status, version, and health link | No |
 | `GET` | `/api/health` | Service health status & active user info | No |
 | `GET` | `/api/destinations` | List destinations (filters: `search`, `continent`, `budget_tier`) | No |
 | `GET` | `/api/destinations/:id` | Get destination details with associated itineraries | No |
