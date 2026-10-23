@@ -104,6 +104,88 @@ main.main-content {
   border-color: var(--color-terracotta);
 }
 
+.nav-user-wrapper {
+  position: relative;
+}
+
+.nav-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+}
+
+.nav-user-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 250px;
+  background-color: var(--color-ivory);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) 0;
+  z-index: 200;
+  animation: fadeIn 150ms ease;
+}
+
+.nav-user-dropdown .user-header {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-user-dropdown .user-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-user-dropdown .user-email {
+  font-size: 0.8rem;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.nav-dropdown-item:hover {
+  background-color: var(--color-sand);
+}
+
+.nav-dropdown-item.logout {
+  color: var(--color-danger);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+}
+
+.nav-dropdown-item.logout:hover {
+  background-color: var(--color-danger-soft);
+}
+
 .nav-mobile-toggle {
   display: none;
   background: none;

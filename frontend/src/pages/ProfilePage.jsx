@@ -13,13 +13,16 @@ import {
   Compass,
   ArrowRight
 } from 'lucide-react';
-import { api, getActiveUserId } from '../services/api';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyState from '../components/common/EmptyState';
 import ErrorBanner from '../components/common/ErrorBanner';
+import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 
 export default function ProfilePage() {
+  const { user: authUser, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,8 +47,12 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (authUser) {
+      fetchProfile();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [authUser, authLoading]);
 
   const handleRemoveBookmark = async (destinationId, title) => {
     try {
@@ -86,10 +93,56 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || (authUser && loading)) {
     return (
       <div className="container" style={{ paddingTop: 'var(--space-12)', textAlign: 'center' }}>
         <p>Loading profile and travel journal...</p>
+      </div>
+    );
+  }
+
+  // Anonymous user prompt
+  if (!authUser) {
+    return (
+      <div className="container" style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-20)', textAlign: 'center' }}>
+        <div style={{
+          maxWidth: '520px',
+          margin: '0 auto',
+          background: '#FFFFFF',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-10) var(--space-8)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '50%',
+            background: 'var(--color-sand)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 'var(--space-5)',
+            border: '1px solid var(--color-border)'
+          }}>
+            <User size={32} color="var(--color-terracotta)" />
+          </div>
+
+          <h2 style={{ fontSize: '1.85rem', marginBottom: '12px' }}>Your Travel Journal</h2>
+          <p style={{ color: 'var(--color-ink-muted)', fontSize: '1rem', lineHeight: '1.6', marginBottom: 'var(--space-8)' }}>
+            Sign in with Google to view your curated itineraries, saved destination wishlist, and slow travel memories.
+          </p>
+
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <GoogleSignInButton
+              text="continue_with"
+              theme="outline"
+              size="large"
+              shape="pill"
+              width={260}
+            />
+          </div>
+        </div>
       </div>
     );
   }
@@ -123,9 +176,9 @@ export default function ProfilePage() {
           />
 
           <div style={{ flex: 1, minWidth: '240px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span className="badge badge-terracotta">Primary Demo User</span>
-            </div>
+              <span className="badge badge-terracotta">
+                {user.email?.endsWith('.local') ? 'Demo Traveler' : 'Traveler'}
+              </span>
             <h1 style={{ fontSize: '2rem', marginBottom: '4px' }}>{user.name}</h1>
             <div style={{ color: 'var(--color-ink-muted)', fontSize: '0.925rem', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap', marginBottom: '10px' }}>
               <span>@{user.username}</span>
@@ -274,6 +327,14 @@ export default function ProfilePage() {
                         <>
                           <span>•</span>
                           <span>{t.destination_title}</span>
+                        </>
+                      )}
+                      {t.visibility && (
+                        <>
+                          <span>•</span>
+                          <span className={`badge ${t.visibility === 'unlisted' ? 'badge-ochre' : t.visibility === 'private' ? 'badge-sand' : 'badge-sage'}`} style={{ fontSize: '0.7rem', padding: '1px 6px' }}>
+                            {t.visibility === 'unlisted' ? 'Unlisted' : t.visibility === 'private' ? 'Private' : 'Public'}
+                          </span>
                         </>
                       )}
                     </div>

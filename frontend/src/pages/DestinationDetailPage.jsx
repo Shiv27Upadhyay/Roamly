@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Bookmark, MapPin, Calendar, DollarSign, PlusCircle, ArrowLeft, Layers, Heart, MessageSquare } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { DetailSkeleton } from '../components/common/LoadingSkeleton';
 import ErrorBanner from '../components/common/ErrorBanner';
@@ -12,6 +13,7 @@ export default function DestinationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
+  const { user, openAuthModal } = useAuth();
   const { addToast } = useToast();
 
   const fetchDestination = async () => {
@@ -29,10 +31,16 @@ export default function DestinationDetailPage() {
 
   useEffect(() => {
     fetchDestination();
-  }, [id]);
+  }, [id, user]);
 
   const handleBookmarkToggle = async () => {
     if (!destination || bookmarkLoading) return;
+
+    if (!user) {
+      openAuthModal('Sign in with Google to save destinations to your wishlist.');
+      return;
+    }
+
     setBookmarkLoading(true);
     try {
       const res = await api.toggleBookmark(destination.id);
@@ -44,7 +52,11 @@ export default function DestinationDetailPage() {
         addToast(`Removed ${destination.title} from your wishlist.`, 'info');
       }
     } catch (err) {
-      addToast(err.message || 'Failed to update bookmark.', 'error');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in to update bookmarks.');
+      } else {
+        addToast(err.message || 'Failed to update bookmark.', 'error');
+      }
     } finally {
       setBookmarkLoading(false);
     }

@@ -5,6 +5,7 @@ const destinationRoutes = require('./destinationRoutes');
 const tripRoutes = require('./tripRoutes');
 const interactionRoutes = require('./interactionRoutes');
 const profileRoutes = require('./profileRoutes');
+const authRoutes = require('./authRoutes');
 
 // API Health Check
 router.get('/health', (req, res) => {
@@ -17,6 +18,7 @@ router.get('/health', (req, res) => {
 });
 
 // Resource Sub-routers
+router.use('/auth', authRoutes);
 router.use('/destinations', destinationRoutes);
 router.use('/trips', tripRoutes);
 router.use('/', interactionRoutes); // mounts /bookmarks and /comments/:id

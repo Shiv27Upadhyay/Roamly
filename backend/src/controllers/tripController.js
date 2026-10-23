@@ -4,11 +4,12 @@
  */
 
 const { getDb, withTransaction } = require('../config/db');
+const { generateShareToken, isValidShareToken } = require('../utils/token');
 
 function getAllTrips(req, res, next) {
   try {
     const db = getDb();
-    const currentUserId = req.user ? req.user.id : 1;
+    const currentUserId = req.user ? req.user.id : null;
     const { destination_id, user_id, search } = req.query;
 
     let query = `
@@ -23,6 +24,7 @@ function getAllTrips(req, res, next) {
         t.estimated_budget,
         COALESCE(t.cover_image, d.cover_image) AS cover_image,
         t.notes,
+        t.visibility,
         t.created_at,
         t.updated_at,
         u.name AS author_name,
@@ -47,8 +49,17 @@ function getAllTrips(req, res, next) {
     }
 
     if (user_id) {
+      const targetUserId = parseInt(user_id, 10);
       query += ` AND t.user_id = ?`;
-      params.push(parseInt(user_id, 10));
+      params.push(targetUserId);
+
+      // If viewing own trips in personal context, owner can see public, unlisted, and private
+      if (!currentUserId || currentUserId !== targetUserId) {
+        query += ` AND t.visibility = 'public'`;
+      }
+    } else {
+      // General discovery feed (Home, /trips directory) only lists public trips
+      query += ` AND t.visibility = 'public'`;
     }
 
     if (search && search.trim() !== '') {
@@ -61,10 +72,14 @@ function getAllTrips(req, res, next) {
 
     const trips = db.prepare(query).all(...params);
 
-    const formatted = trips.map(t => ({
-      ...t,
-      is_liked: Boolean(t.is_liked)
-    }));
+    const formatted = trips.map(t => {
+      const item = {
+        ...t,
+        is_liked: Boolean(t.is_liked)
+      };
+      delete item.share_token;
+      return item;
+    });
 
     res.status(200).json({
       success: true,
@@ -79,8 +94,9 @@ function getAllTrips(req, res, next) {
 function getTripById(req, res, next) {
   try {
     const db = getDb();
-    const currentUserId = req.user ? req.user.id : 1;
+    const currentUserId = req.user ? req.user.id : null;
     const { id } = req.params;
+    const providedToken = req.query.token || req.headers['x-share-token'] || null;
 
     const trip = db.prepare(`
       SELECT 
@@ -94,6 +110,8 @@ function getTripById(req, res, next) {
         t.estimated_budget,
         COALESCE(t.cover_image, d.cover_image) AS cover_image,
         t.notes,
+        t.visibility,
+        t.share_token,
         t.created_at,
         t.updated_at,
         u.name AS author_name,
@@ -116,6 +134,27 @@ function getTripById(req, res, next) {
         success: false,
         error: `Trip with ID ${id} not found.`
       });
+    }
+
+    const isOwner = Boolean(currentUserId && trip.user_id === currentUserId);
+
+    // Enforce visibility authorization rules
+    if (trip.visibility === 'private') {
+      if (!isOwner) {
+        // Uniform 404 to avoid disclosing existence of private trip
+        return res.status(404).json({
+          success: false,
+          error: `Trip with ID ${id} not found.`
+        });
+      }
+    } else if (trip.visibility === 'unlisted') {
+      const hasValidToken = trip.share_token && isValidShareToken(providedToken, trip.share_token);
+      if (!isOwner && !hasValidToken) {
+        return res.status(404).json({
+          success: false,
+          error: `Trip with ID ${id} not found.`
+        });
+      }
     }
 
     // Fetch Stops
@@ -146,16 +185,23 @@ function getTripById(req, res, next) {
     // Calculate total stops cost
     const stopsTotalCost = stops.reduce((sum, s) => sum + (Number(s.cost) || 0), 0);
 
+    const responseData = {
+      ...trip,
+      is_liked: Boolean(trip.is_liked),
+      is_owner: isOwner,
+      stops_total_cost: stopsTotalCost,
+      stops,
+      comments
+    };
+
+    // Never disclose share_token to non-owners
+    if (!isOwner) {
+      delete responseData.share_token;
+    }
+
     res.status(200).json({
       success: true,
-      data: {
-        ...trip,
-        is_liked: Boolean(trip.is_liked),
-        is_owner: trip.user_id === currentUserId,
-        stops_total_cost: stopsTotalCost,
-        stops,
-        comments
-      }
+      data: responseData
     });
   } catch (err) {
     next(err);
@@ -174,7 +220,8 @@ function createTrip(req, res, next) {
       estimated_budget = 0,
       cover_image,
       notes,
-      stops = []
+      stops = [],
+      visibility = 'public'
     } = req.body;
 
     const newTrip = withTransaction((db) => {
@@ -185,9 +232,21 @@ function createTrip(req, res, next) {
         if (dest) resolvedCover = dest.cover_image;
       }
 
+      let shareToken = null;
+      if (visibility === 'unlisted') {
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const candidate = generateShareToken();
+          const collision = db.prepare('SELECT 1 FROM trips WHERE share_token = ?').get(candidate);
+          if (!collision) {
+            shareToken = candidate;
+            break;
+          }
+        }
+      }
+
       const insertTripStmt = db.prepare(`
-        INSERT INTO trips (user_id, destination_id, title, start_date, end_date, currency, estimated_budget, cover_image, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO trips (user_id, destination_id, title, start_date, end_date, currency, estimated_budget, cover_image, notes, visibility, share_token)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const result = insertTripStmt.run(
@@ -199,7 +258,9 @@ function createTrip(req, res, next) {
         currency,
         Number(estimated_budget) || 0,
         resolvedCover || null,
-        notes ? notes.trim() : null
+        notes ? notes.trim() : null,
+        visibility,
+        shareToken
       );
 
       const tripId = Number(result.lastInsertRowid);
@@ -242,7 +303,7 @@ function updateTrip(req, res, next) {
     const { id } = req.params;
 
     // Check if trip exists
-    const existingTrip = db.prepare('SELECT id, user_id FROM trips WHERE id = ?').get(id);
+    const existingTrip = db.prepare('SELECT id, user_id, visibility, share_token FROM trips WHERE id = ?').get(id);
     if (!existingTrip) {
       return res.status(404).json({
         success: false,
@@ -267,7 +328,8 @@ function updateTrip(req, res, next) {
       estimated_budget,
       cover_image,
       notes,
-      stops
+      stops,
+      visibility
     } = req.body;
 
     withTransaction((txDb) => {
@@ -306,6 +368,32 @@ function updateTrip(req, res, next) {
       if (notes !== undefined) {
         updates.push('notes = ?');
         params.push(notes ? notes.trim() : null);
+      }
+
+      if (visibility !== undefined) {
+        updates.push('visibility = ?');
+        params.push(visibility);
+
+        if (visibility === 'unlisted') {
+          let tokenToUse = existingTrip.share_token;
+          // Rotate token if previous was private, or if no token exists yet
+          if (existingTrip.visibility === 'private' || !tokenToUse) {
+            for (let attempt = 0; attempt < 5; attempt++) {
+              const candidate = generateShareToken();
+              const collision = txDb.prepare('SELECT 1 FROM trips WHERE share_token = ? AND id != ?').get(candidate, id);
+              if (!collision) {
+                tokenToUse = candidate;
+                break;
+              }
+            }
+          }
+          updates.push('share_token = ?');
+          params.push(tokenToUse);
+        } else {
+          // Clear share_token when changing to public or private
+          updates.push('share_token = ?');
+          params.push(null);
+        }
       }
 
       updates.push("updated_at = datetime('now')");

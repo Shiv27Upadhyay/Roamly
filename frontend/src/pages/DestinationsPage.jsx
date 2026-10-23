@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, Compass, RefreshCw } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import DestinationCard from '../components/common/DestinationCard';
 import { GridSkeleton } from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
@@ -16,6 +17,7 @@ const BUDGET_TIERS = [
 ];
 
 export default function DestinationsPage() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialSearch = searchParams.get('search') || '';
@@ -46,7 +48,7 @@ export default function DestinationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, continent, budgetTier]);
+  }, [search, continent, budgetTier, user]);
 
   useEffect(() => {
     fetchDestinations();

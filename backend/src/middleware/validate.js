@@ -65,8 +65,16 @@ function validateTripPayload(isUpdate = false) {
   const ALLOWED_CATEGORIES = ['Stay', 'Food', 'Culture', 'Nature', 'Activity', 'Transit'];
 
   return (req, res, next) => {
-    const { title, start_date, end_date, estimated_budget, destination_id, currency, notes, stops } = req.body;
+    const { title, start_date, end_date, estimated_budget, destination_id, currency, notes, stops, visibility } = req.body;
     const errors = [];
+
+    // Visibility validation (if provided)
+    const ALLOWED_VISIBILITY = ['public', 'unlisted', 'private'];
+    if (visibility !== undefined) {
+      if (!ALLOWED_VISIBILITY.includes(visibility)) {
+        errors.push("Field 'visibility' must be one of: 'public', 'unlisted', 'private'.");
+      }
+    }
 
     // Title validation
     if (!isUpdate || title !== undefined) {

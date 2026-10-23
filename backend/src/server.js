@@ -5,22 +5,34 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const { getDb, closeDb } = require('./config/db');
 const { seedDatabase } = require('./config/seed');
-const { resolveUser } = require('./middleware/validate');
+const { optionalAuth } = require('./middleware/auth');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const apiRoutes = require('./routes/index');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const FRONTEND_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Initialize Database & Auto-seed if empty
 const db = getDb();
 seedDatabase(false); // Only seeds if destinations table is empty
 
-// Global Middlewares
-app.use(cors());
+// Security & Parsing Global Middlewares
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
+app.use(cors({
+  origin: FRONTEND_ORIGIN,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-share-token']
+}));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -28,8 +40,8 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// User context resolution
-app.use(resolveUser);
+// Global user session resolution (validates JWT, leaves req.user = null if unauthenticated)
+app.use(optionalAuth);
 
 // Mount API Routes
 app.use('/api', apiRoutes);

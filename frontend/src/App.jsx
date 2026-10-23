@@ -1,8 +1,13 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
+import { AuthProvider } from './context/AuthContext';
+import AuthModal from './components/auth/AuthModal';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import InitialLoader from './components/common/InitialLoader';
+import RouteTransition from './components/common/RouteTransition';
+import CursorTrail from './components/common/CursorTrail';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -33,28 +38,46 @@ function NotFoundPage() {
   );
 }
 
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  return (
+    <Routes location={location}>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/destinations" element={<DestinationsPage />} />
+      <Route path="/destinations/:id" element={<DestinationDetailPage />} />
+      <Route path="/trips" element={<TripsPage />} />
+      <Route path="/trips/new" element={<CreateEditTripPage />} />
+      <Route path="/trips/:id" element={<TripDetailPage />} />
+      <Route path="/trips/:id/edit" element={<CreateEditTripPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}
+
 export default function App() {
   return (
     <ToastProvider>
-      <Router>
-        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <Navbar />
-          <main className="main-content" style={{ flex: 1 }}>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/destinations" element={<DestinationsPage />} />
-              <Route path="/destinations/:id" element={<DestinationDetailPage />} />
-              <Route path="/trips" element={<TripsPage />} />
-              <Route path="/trips/new" element={<CreateEditTripPage />} />
-              <Route path="/trips/:id" element={<TripDetailPage />} />
-              <Route path="/trips/:id/edit" element={<CreateEditTripPage />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
+      <AuthProvider>
+        <InitialLoader />
+        <Router>
+          <CursorTrail />
+          <RouteTransition />
+          <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <Navbar />
+            <main className="main-content" style={{ flex: 1 }}>
+              <AnimatedRoutes />
+            </main>
+            <Footer />
+          </div>
+          <AuthModal />
+        </Router>
+      </AuthProvider>
     </ToastProvider>
   );
 }

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { PlusCircle, Trash2, ArrowLeft, Save, AlertCircle, Calendar, DollarSign, Layers } from 'lucide-react';
-import { api, getActiveUserId } from '../services/api';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ErrorBanner from '../components/common/ErrorBanner';
+import GoogleSignInButton from '../components/auth/GoogleSignInButton';
+import TripPrivacySelector from '../components/trips/TripPrivacySelector';
 
 const STOP_CATEGORIES = ['Culture', 'Food', 'Stay', 'Nature', 'Activity', 'Transit'];
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
@@ -15,7 +18,7 @@ export default function CreateEditTripPage() {
   const preSelectedDestinationId = searchParams.get('destination_id');
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const currentUserId = getActiveUserId();
+  const { user, loading: authLoading, openAuthModal } = useAuth();
 
   // Destination options
   const [destinations, setDestinations] = useState([]);
@@ -29,7 +32,8 @@ export default function CreateEditTripPage() {
     currency: 'USD',
     estimated_budget: '',
     cover_image: '',
-    notes: ''
+    notes: '',
+    visibility: 'public'
   });
 
   // Dynamic Stops State
@@ -66,7 +70,7 @@ export default function CreateEditTripPage() {
         const t = res.data;
 
         // Verify ownership
-        if (t.user_id !== currentUserId && !t.is_owner) {
+        if (t.user_id !== user?.id && !t.is_owner) {
           setServerError('Forbidden: You can only edit itineraries you authored.');
           return;
         }
@@ -79,7 +83,8 @@ export default function CreateEditTripPage() {
           currency: t.currency || 'USD',
           estimated_budget: t.estimated_budget !== undefined ? String(t.estimated_budget) : '',
           cover_image: t.cover_image || '',
-          notes: t.notes || ''
+          notes: t.notes || '',
+          visibility: t.visibility || 'public'
         });
 
         if (Array.isArray(t.stops) && t.stops.length > 0) {
@@ -101,7 +106,7 @@ export default function CreateEditTripPage() {
     }
 
     loadTripForEdit();
-  }, [id, isEditMode, currentUserId]);
+  }, [id, isEditMode, user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -176,6 +181,11 @@ export default function CreateEditTripPage() {
     e.preventDefault();
     setServerError('');
 
+    if (!user) {
+      openAuthModal('Sign in with Google to save and publish your itinerary.');
+      return;
+    }
+
     if (!validateForm()) {
       addToast('Please resolve the validation errors.', 'error');
       return;
@@ -192,6 +202,7 @@ export default function CreateEditTripPage() {
       estimated_budget: formData.estimated_budget ? Number(formData.estimated_budget) : 0,
       cover_image: formData.cover_image ? formData.cover_image.trim() : null,
       notes: formData.notes ? formData.notes.trim() : null,
+      visibility: formData.visibility || 'public',
       stops: stops
         .filter((s) => s.place_name && s.place_name.trim() !== '')
         .map((s, idx) => ({
@@ -218,6 +229,10 @@ export default function CreateEditTripPage() {
 
       navigate(`/trips/${savedTrip.id}`);
     } catch (err) {
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in to save your trip.');
+        return;
+      }
       const msg = err.details ? err.details.join(' ') : err.message;
       setServerError(msg || 'Failed to save itinerary.');
       addToast('Error saving trip. Check the form fields.', 'error');
@@ -226,10 +241,32 @@ export default function CreateEditTripPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container" style={{ paddingTop: 'var(--space-12)', textAlign: 'center' }}>
         <p>Loading itinerary details...</p>
+      </div>
+    );
+  }
+
+  if (isEditMode && !user) {
+    return (
+      <div className="container-narrow" style={{ paddingTop: 'var(--space-12)', textAlign: 'center' }}>
+        <div style={{
+          background: '#FFFFFF',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-10) var(--space-8)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          <h2>Sign In to Edit Itinerary</h2>
+          <p style={{ color: 'var(--color-ink-muted)', margin: '16px 0 24px' }}>
+            You must be signed in as the itinerary author to make changes.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <GoogleSignInButton text="signin_with" theme="outline" size="large" shape="pill" width={260} />
+          </div>
+        </div>
       </div>
     );
   }
@@ -416,6 +453,13 @@ export default function CreateEditTripPage() {
               onChange={handleInputChange}
             />
           </div>
+
+          {/* Privacy & Visibility Selector */}
+          <TripPrivacySelector
+            value={formData.visibility}
+            onChange={(newVis) => setFormData((prev) => ({ ...prev, visibility: newVis }))}
+            disabled={submitting}
+          />
         </div>
 
         {/* 2. Dynamic Stops Section */}

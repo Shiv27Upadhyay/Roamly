@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url TEXT,
   bio TEXT,
   home_city TEXT,
+  google_id TEXT UNIQUE,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -46,6 +47,8 @@ CREATE TABLE IF NOT EXISTS trips (
   estimated_budget REAL NOT NULL DEFAULT 0,
   cover_image TEXT,
   notes TEXT,
+  visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'unlisted', 'private')),
+  share_token TEXT UNIQUE,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -93,18 +96,71 @@ CREATE TABLE IF NOT EXISTS comments (
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
 CREATE INDEX IF NOT EXISTS idx_trips_destination_id ON trips(destination_id);
+CREATE INDEX IF NOT EXISTS idx_trips_visibility ON trips(visibility);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trips_share_token ON trips(share_token);
 CREATE INDEX IF NOT EXISTS idx_trip_stops_trip_id ON trip_stops(trip_id);
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(user_id);
 CREATE INDEX IF NOT EXISTS idx_bookmarks_dest ON bookmarks(destination_id);
 CREATE INDEX IF NOT EXISTS idx_trip_likes_trip ON trip_likes(trip_id);
 CREATE INDEX IF NOT EXISTS idx_comments_trip ON comments(trip_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
 `;
 
+/**
+ * Idempotently applies incremental migrations without breaking existing data.
+ */
+function migrateSchema(db) {
+  // 1. Users table migrations
+  const userTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users';").all();
+  if (userTables.length > 0) {
+    const userColumns = db.prepare('PRAGMA table_info(users);').all();
+    const hasGoogleId = userColumns.some(col => col.name === 'google_id');
+    if (!hasGoogleId) {
+      db.exec('ALTER TABLE users ADD COLUMN google_id TEXT;');
+    }
+
+    const userIndexes = db.prepare('PRAGMA index_list(users);').all();
+    const hasGoogleIdIndex = userIndexes.some(idx => idx.name === 'idx_users_google_id');
+    if (!hasGoogleIdIndex) {
+      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);');
+    }
+  }
+
+  // 2. Trips table migrations
+  const tripTables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='trips';").all();
+  if (tripTables.length > 0) {
+    const tripColumns = db.prepare('PRAGMA table_info(trips);').all();
+    const hasVisibility = tripColumns.some(col => col.name === 'visibility');
+    if (!hasVisibility) {
+      db.exec("ALTER TABLE trips ADD COLUMN visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public', 'unlisted', 'private'));");
+    }
+
+    const hasShareToken = tripColumns.some(col => col.name === 'share_token');
+    if (!hasShareToken) {
+      db.exec('ALTER TABLE trips ADD COLUMN share_token TEXT;');
+    }
+
+    const tripIndexes = db.prepare('PRAGMA index_list(trips);').all();
+    const hasShareTokenIndex = tripIndexes.some(idx => idx.name === 'idx_trips_share_token');
+    if (!hasShareTokenIndex) {
+      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_trips_share_token ON trips(share_token);');
+    }
+
+    const hasVisibilityIndex = tripIndexes.some(idx => idx.name === 'idx_trips_visibility');
+    if (!hasVisibilityIndex) {
+      db.exec('CREATE INDEX IF NOT EXISTS idx_trips_visibility ON trips(visibility);');
+    }
+  }
+}
+
 function initSchema(db) {
+  migrateSchema(db);
   db.exec(SCHEMA_SQL);
+  migrateSchema(db);
 }
 
 module.exports = {
   SCHEMA_SQL,
+  migrateSchema,
   initSchema
 };

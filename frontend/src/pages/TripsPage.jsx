@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Search, Compass, X } from 'lucide-react';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import TripCard from '../components/common/TripCard';
 import { GridSkeleton } from '../components/common/LoadingSkeleton';
 import EmptyState from '../components/common/EmptyState';
 import ErrorBanner from '../components/common/ErrorBanner';
 
 export default function TripsPage() {
+  const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,7 +35,7 @@ export default function TripsPage() {
       fetchTrips();
     }, 250);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, user]);
 
   return (
     <div className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-16)' }}>

@@ -3,5 +3,6 @@ node_modules/
 data/roamly.db-wal
 data/roamly.db-shm
 data/roamly.db-journal
+data/backups/
 npm-debug.log*
 .DS_Store

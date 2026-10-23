@@ -5,32 +5,26 @@
 
 const BASE_URL = '/api';
 
-// Current active demo user ID (defaults to Elena Rostova: ID 1)
-let activeUserId = 1;
-
-export function setActiveUserId(id) {
-  activeUserId = id;
-}
-
-export function getActiveUserId() {
-  return activeUserId;
-}
-
 /**
  * Core HTTP Request Wrapper
  */
 async function request(endpoint, options = {}) {
+  // Guard: ensure relative API endpoint to never send credentials to external origins
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    throw new Error('External origin requests are forbidden via internal api client.');
+  }
+
   const url = `${BASE_URL}${endpoint}`;
 
   const headers = {
     'Content-Type': 'application/json',
-    'x-user-id': String(activeUserId),
     ...(options.headers || {})
   };
 
   const config = {
     method: options.method || 'GET',
     headers,
+    credentials: 'include',
     ...(options.body ? { body: JSON.stringify(options.body) } : {})
   };
 
@@ -65,9 +59,23 @@ async function request(endpoint, options = {}) {
 }
 
 // ==========================================
-// Destinations API
+// API Methods
 // ==========================================
 export const api = {
+  // Authentication & Session
+  loginWithGoogle: (credential) =>
+    request('/auth/google', {
+      method: 'POST',
+      body: { credential }
+    }),
+
+  getCurrentUser: () => request('/auth/me'),
+
+  logout: () =>
+    request('/auth/logout', {
+      method: 'POST'
+    }),
+
   // Health
   getHealth: () => request('/health'),
 
@@ -98,7 +106,11 @@ export const api = {
     return request(`/trips${query}`);
   },
 
-  getTripById: (id) => request(`/trips/${id}`),
+  getTripById: (id, token = null) => {
+    const headers = token ? { 'x-share-token': token } : {};
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return request(`/trips/${id}${query}`, { headers });
+  },
 
   createTrip: (tripData) =>
     request('/trips', {
@@ -117,14 +129,21 @@ export const api = {
       method: 'DELETE'
     }),
 
-  toggleTripLike: (tripId) =>
-    request(`/trips/${tripId}/like`, { method: 'POST' }),
+  toggleTripLike: (tripId, token = null) => {
+    const headers = token ? { 'x-share-token': token } : {};
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return request(`/trips/${tripId}/like${query}`, { method: 'POST', headers });
+  },
 
-  addTripComment: (tripId, content) =>
-    request(`/trips/${tripId}/comments`, {
+  addTripComment: (tripId, content, token = null) => {
+    const headers = token ? { 'x-share-token': token } : {};
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return request(`/trips/${tripId}/comments${query}`, {
       method: 'POST',
+      headers,
       body: { content }
-    }),
+    });
+  },
 
   deleteComment: (commentId) =>
     request(`/comments/${commentId}`, { method: 'DELETE' }),

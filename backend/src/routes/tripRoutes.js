@@ -16,16 +16,17 @@ const {
   validateTripPayload,
   validateCommentPayload
 } = require('../middleware/validate');
+const { requireAuth } = require('../middleware/auth');
 
 // Trip CRUD
 router.get('/', getAllTrips);
 router.get('/:id', validateIdParam('id'), getTripById);
-router.post('/', validateTripPayload(false), createTrip);
-router.put('/:id', validateIdParam('id'), validateTripPayload(true), updateTrip);
-router.delete('/:id', validateIdParam('id'), deleteTrip);
+router.post('/', requireAuth, validateTripPayload(false), createTrip);
+router.put('/:id', requireAuth, validateIdParam('id'), validateTripPayload(true), updateTrip);
+router.delete('/:id', requireAuth, validateIdParam('id'), deleteTrip);
 
 // Interactions on Trips
-router.post('/:id/like', validateIdParam('id'), toggleTripLike);
-router.post('/:id/comments', validateIdParam('id'), validateCommentPayload, addTripComment);
+router.post('/:id/like', requireAuth, validateIdParam('id'), toggleTripLike);
+router.post('/:id/comments', requireAuth, validateIdParam('id'), validateCommentPayload, addTripComment);
 
 module.exports = router;

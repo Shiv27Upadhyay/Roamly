@@ -4,6 +4,7 @@
  */
 
 const { getDb } = require('../config/db');
+const { isValidShareToken } = require('../utils/token');
 
 /**
  * Toggle bookmark for a destination (Add / Remove)
@@ -105,13 +106,33 @@ function toggleTripLike(req, res, next) {
     const userId = req.user.id;
     const tripId = req.params.id;
 
-    // Verify trip exists
-    const trip = db.prepare('SELECT id, title FROM trips WHERE id = ?').get(tripId);
+    // Verify trip exists and user has authorization to interact
+    const trip = db.prepare('SELECT id, user_id, title, visibility, share_token FROM trips WHERE id = ?').get(tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
         error: `Trip with ID ${tripId} not found.`
       });
+    }
+
+    const isOwner = Boolean(trip.user_id === userId);
+    const providedToken = req.query.token || req.headers['x-share-token'] || (req.body && req.body.token) || null;
+
+    if (trip.visibility === 'private' && !isOwner) {
+      return res.status(404).json({
+        success: false,
+        error: `Trip with ID ${tripId} not found.`
+      });
+    }
+
+    if (trip.visibility === 'unlisted') {
+      const hasValidToken = trip.share_token && isValidShareToken(providedToken, trip.share_token);
+      if (!isOwner && !hasValidToken) {
+        return res.status(404).json({
+          success: false,
+          error: `Trip with ID ${tripId} not found.`
+        });
+      }
     }
 
     const existing = db.prepare('SELECT id FROM trip_likes WHERE user_id = ? AND trip_id = ?').get(userId, tripId);
@@ -151,13 +172,33 @@ function addTripComment(req, res, next) {
     const tripId = req.params.id;
     const { content } = req.body;
 
-    // Verify trip exists
-    const trip = db.prepare('SELECT id FROM trips WHERE id = ?').get(tripId);
+    // Verify trip exists and user has authorization to comment
+    const trip = db.prepare('SELECT id, user_id, visibility, share_token FROM trips WHERE id = ?').get(tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
         error: `Trip with ID ${tripId} not found.`
       });
+    }
+
+    const isOwner = Boolean(trip.user_id === userId);
+    const providedToken = req.query.token || req.headers['x-share-token'] || (req.body && req.body.token) || null;
+
+    if (trip.visibility === 'private' && !isOwner) {
+      return res.status(404).json({
+        success: false,
+        error: `Trip with ID ${tripId} not found.`
+      });
+    }
+
+    if (trip.visibility === 'unlisted') {
+      const hasValidToken = trip.share_token && isValidShareToken(providedToken, trip.share_token);
+      if (!isOwner && !hasValidToken) {
+        return res.status(404).json({
+          success: false,
+          error: `Trip with ID ${tripId} not found.`
+        });
+      }
     }
 
     const result = db.prepare(`

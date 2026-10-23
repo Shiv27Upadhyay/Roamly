@@ -7,7 +7,9 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/config/seed.js",
-    "test:api": "node test/api_test.js"
+    "test:api": "node test/api_test.js",
+    "test:security": "node test/auth_security_test.js",
+    "test:privacy": "node test/trip_privacy_test.js"
   },
   "keywords": [
     "travel",
@@ -19,9 +21,13 @@
   "author": "Roamly Team",
   "license": "ISC",
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "google-auth-library": "^11.3.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.0"
   },
   "devDependencies": {

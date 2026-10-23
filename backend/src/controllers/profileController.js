@@ -9,12 +9,12 @@ function getUserProfile(req, res, next) {
   try {
     const db = getDb();
     // Support target user via /api/profile or /api/profile/:id (defaults to current user)
-    const targetUserId = req.params.id ? parseInt(req.params.id, 10) : req.user.id;
+    const targetUserId = req.params.id ? parseInt(req.params.id, 10) : (req.user ? req.user.id : null);
 
-    if (isNaN(targetUserId) || targetUserId <= 0) {
-      return res.status(400).json({
+    if (!targetUserId || isNaN(targetUserId) || targetUserId <= 0) {
+      return res.status(req.params.id ? 400 : 401).json({
         success: false,
-        error: 'Invalid user ID.'
+        error: req.params.id ? 'Invalid user ID.' : 'Authentication required to view own profile.'
       });
     }
 
@@ -31,8 +31,10 @@ function getUserProfile(req, res, next) {
       });
     }
 
+    const isOwner = Boolean(req.user && req.user.id === targetUserId);
+
     // User's created trips
-    const trips = db.prepare(`
+    const tripsQuery = `
       SELECT 
         t.id,
         t.title,
@@ -43,6 +45,8 @@ function getUserProfile(req, res, next) {
         t.estimated_budget,
         COALESCE(t.cover_image, d.cover_image) AS cover_image,
         t.notes,
+        t.visibility,
+        ${isOwner ? 't.share_token,' : ''}
         t.created_at,
         t.updated_at,
         d.title AS destination_title,
@@ -52,9 +56,10 @@ function getUserProfile(req, res, next) {
         (SELECT COUNT(*) FROM trip_stops ts WHERE ts.trip_id = t.id) AS stops_count
       FROM trips t
       LEFT JOIN destinations d ON d.id = t.destination_id
-      WHERE t.user_id = ?
+      WHERE t.user_id = ? ${isOwner ? '' : "AND t.visibility = 'public'"}
       ORDER BY t.created_at DESC
-    `).all(targetUserId);
+    `;
+    const trips = db.prepare(tripsQuery).all(targetUserId);
 
     // User's saved destinations
     const savedDestinations = db.prepare(`
@@ -82,12 +87,13 @@ function getUserProfile(req, res, next) {
     }));
 
     // Calculate aggregated stats
-    const likesReceived = db.prepare(`
+    const likesReceivedQuery = `
       SELECT COUNT(*) as count
       FROM trip_likes tl
       JOIN trips t ON t.id = tl.trip_id
-      WHERE t.user_id = ?
-    `).get(targetUserId).count;
+      WHERE t.user_id = ? ${isOwner ? '' : "AND t.visibility = 'public'"}
+    `;
+    const likesReceived = db.prepare(likesReceivedQuery).get(targetUserId).count;
 
     const commentsPosted = db.prepare(`
       SELECT COUNT(*) as count

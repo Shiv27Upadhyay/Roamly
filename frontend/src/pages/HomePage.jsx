@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Compass, Search, MapPin, Calendar, ArrowRight, Sparkles, Heart } from 'lucide-react';
+import { Search, ArrowRight, Sparkles, Heart } from 'lucide-react';
 import { api } from '../services/api';
 import DestinationCard from '../components/common/DestinationCard';
 import TripCard from '../components/common/TripCard';
 import { GridSkeleton } from '../components/common/LoadingSkeleton';
 import ErrorBanner from '../components/common/ErrorBanner';
+import heroImage from '../assets/hero.png';
 
 export default function HomePage() {
   const [destinations, setDestinations] = useState([]);
@@ -13,6 +14,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const [isHeroFading, setIsHeroFading] = useState(false);
   const navigate = useNavigate();
 
   const fetchData = async () => {
@@ -35,6 +39,68 @@ export default function HomePage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Task 3: Cycle featured destination every 6 seconds unless hovered or keyboard-focused
+  useEffect(() => {
+    if (!destinations || destinations.length <= 1 || isHeroPaused) return;
+
+    const timer = setInterval(() => {
+      setIsHeroFading(true);
+      setTimeout(() => {
+        setFeaturedIndex((prev) => (prev + 1) % destinations.length);
+        setIsHeroFading(false);
+      }, 240);
+    }, 6000);
+
+    return () => clearInterval(timer);
+  }, [destinations, isHeroPaused]);
+
+  // Current featured destination from real API data
+  const currentFeatured = useMemo(() => {
+    if (!destinations || destinations.length === 0) return null;
+    return destinations[featuredIndex % destinations.length] || destinations[0];
+  }, [destinations, featuredIndex]);
+
+  // Task 4 & Task 5: Dynamic Most-Liked Editor's Pick with deterministic tie-breaking
+  const editorTrip = useMemo(() => {
+    if (!trips || trips.length === 0) return null;
+    return [...trips].sort((a, b) => {
+      // 1. Primary: highest likes_count
+      const likesDiff = (Number(b.likes_count) || 0) - (Number(a.likes_count) || 0);
+      if (likesDiff !== 0) return likesDiff;
+
+      // 2. Deterministic Tie-Breaker 1: highest stops_count (more complete itinerary)
+      const stopsDiff = (Number(b.stops_count) || 0) - (Number(a.stops_count) || 0);
+      if (stopsDiff !== 0) return stopsDiff;
+
+      // 3. Deterministic Tie-Breaker 2: lowest ID (earliest curated itinerary)
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    })[0];
+  }, [trips]);
+
+  // Related destination for the Editor's Pick
+  const editorDestination = useMemo(() => {
+    if (!editorTrip || !destinations) return null;
+    return destinations.find((d) => d.id === editorTrip.destination_id) || null;
+  }, [editorTrip, destinations]);
+
+  // Task 4: Resolve notes cleanly without displaying literal "na" or leaving empty
+  const editorTripNotes = useMemo(() => {
+    if (!editorTrip) return '';
+    const rawNotes = (editorTrip.notes || '').trim();
+    if (rawNotes && rawNotes.toLowerCase() !== 'na' && rawNotes.toLowerCase() !== 'n/a') {
+      return rawNotes;
+    }
+    if (editorDestination?.tagline) {
+      return editorDestination.tagline;
+    }
+    if (editorDestination?.description) {
+      return editorDestination.description;
+    }
+    return 'Slow-travel itinerary with curated morning walks, artisan studio visits, and regional culinary dining.';
+  }, [editorTrip, editorDestination]);
+
+  const editorTripImage = editorTrip?.cover_image || editorDestination?.cover_image || heroImage;
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -92,42 +158,136 @@ export default function HomePage() {
             </form>
           </div>
 
-          {/* Hero Showcase Photo */}
-          <div style={{ position: 'relative' }}>
-            <div style={{
-              borderRadius: 'var(--radius-md)',
-              overflow: 'hidden',
-              boxShadow: 'var(--shadow-lg)',
-              border: '4px solid var(--color-ivory)',
-              aspectRatio: '4/3'
-            }}>
+          {/* Hero Showcase Photo with Rotating Featured Destination */}
+          <div
+            style={{ position: 'relative' }}
+            onMouseEnter={() => setIsHeroPaused(true)}
+            onMouseLeave={() => setIsHeroPaused(false)}
+          >
+            <Link
+              to={currentFeatured ? `/destinations/${currentFeatured.id}` : '/destinations'}
+              aria-label={currentFeatured ? `Featured Destination: ${currentFeatured.title}, ${currentFeatured.country}. Explore details.` : 'Featured Destination'}
+              onFocus={() => setIsHeroPaused(true)}
+              onBlur={() => setIsHeroPaused(false)}
+              style={{
+                display: 'block',
+                textDecoration: 'none',
+                color: 'inherit',
+                borderRadius: 'var(--radius-md)',
+                overflow: 'hidden',
+                boxShadow: 'var(--shadow-lg)',
+                border: '4px solid var(--color-ivory)',
+                aspectRatio: '4/3',
+                backgroundColor: 'var(--color-sand)',
+                position: 'relative'
+              }}
+            >
               <img
-                src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1000&q=80"
-                alt="Autumn in Kyoto"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                src={currentFeatured?.cover_image || heroImage}
+                alt={currentFeatured ? `${currentFeatured.title}, ${currentFeatured.country}` : 'Featured Destination'}
+                onError={(e) => {
+                  if (e.currentTarget.src !== heroImage) {
+                    e.currentTarget.src = heroImage;
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  opacity: isHeroFading ? 0.35 : 1,
+                  transform: isHeroPaused ? 'scale(1.02)' : 'scale(1)',
+                  transition: 'opacity 240ms ease-in-out, transform 400ms ease'
+                }}
               />
-            </div>
+            </Link>
+
             {/* Editorial Caption Card */}
-            <div style={{
-              position: 'absolute',
-              bottom: '-24px',
-              left: '-24px',
-              background: 'var(--color-ivory)',
-              padding: '16px 20px',
-              borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--color-border)',
-              boxShadow: 'var(--shadow-md)',
-              maxWidth: '260px'
-            }}>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--color-terracotta)', fontWeight: 700, letterSpacing: '0.06em' }}>
-                Featured Destination
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '-24px',
+                left: '-24px',
+                background: 'var(--color-ivory)',
+                padding: '16px 20px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-md)',
+                maxWidth: '280px',
+                pointerEvents: 'auto'
+              }}
+            >
+              <div style={{ marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--color-terracotta)', fontWeight: 700, letterSpacing: '0.06em' }}>
+                  Featured Destination
+                </span>
               </div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-ink)' }}>
-                Kyoto, Japan
+
+              <Link
+                to={currentFeatured ? `/destinations/${currentFeatured.id}` : '/destinations'}
+                onFocus={() => setIsHeroPaused(true)}
+                onBlur={() => setIsHeroPaused(false)}
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '1.2rem',
+                  fontWeight: 600,
+                  color: 'var(--color-ink)',
+                  display: 'block',
+                  textDecoration: 'none',
+                  lineHeight: 1.25,
+                  marginBottom: '4px'
+                }}
+              >
+                {currentFeatured ? `${currentFeatured.title}, ${currentFeatured.country}` : 'Kyoto, Japan'}
+              </Link>
+
+              <div style={{
+                fontSize: '0.8rem',
+                color: 'var(--color-ink-muted)',
+                lineHeight: 1.35,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
+              }}>
+                {currentFeatured ? (currentFeatured.tagline || currentFeatured.description) : 'Autumn temples & kaiseki dinners'}
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--color-ink-muted)' }}>
-                Autumn temples &amp; kaiseki dinners
-              </div>
+
+              {/* Accessible rotation indicators */}
+              {destinations.length > 1 && (
+                <div
+                  style={{ display: 'flex', gap: '5px', alignItems: 'center', marginTop: '10px' }}
+                  role="tablist"
+                  aria-label="Featured destinations"
+                >
+                  {destinations.map((d, idx) => {
+                    const isSelected = idx === (featuredIndex % destinations.length);
+                    return (
+                      <button
+                        key={d.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
+                        aria-label={`Featured destination: ${d.title}, ${d.country}`}
+                        onClick={() => {
+                          setFeaturedIndex(idx);
+                        }}
+                        onFocus={() => setIsHeroPaused(true)}
+                        onBlur={() => setIsHeroPaused(false)}
+                        style={{
+                          width: isSelected ? '18px' : '6px',
+                          height: '6px',
+                          borderRadius: 'var(--radius-pill)',
+                          backgroundColor: isSelected ? 'var(--color-terracotta)' : 'var(--color-border-dark)',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          transition: 'all 200ms ease'
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -150,7 +310,7 @@ export default function HomePage() {
               </p>
             </div>
             <Link to="/destinations" className="btn btn-outline btn-sm">
-              <span>View All 8 Destinations</span>
+              <span>View All {destinations.length > 0 ? destinations.length : 8} Destinations</span>
               <ArrowRight size={15} />
             </Link>
           </div>
@@ -166,8 +326,8 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 2. Editorial Highlight Banner: Kyoto Trip Showcase */}
-        {trips.length > 0 && (
+        {/* 2. Editorial Highlight Banner: Dynamic Most-Liked Trip Showcase */}
+        {editorTrip && (
           <section style={{
             background: 'var(--color-ink)',
             color: 'var(--color-ivory)',
@@ -184,36 +344,45 @@ export default function HomePage() {
                 <span className="badge badge-ochre" style={{ background: 'rgba(217, 158, 75, 0.25)', color: '#F1C67E', border: '1px solid rgba(217,158,75,0.4)' }}>
                   Editor's Pick Itinerary
                 </span>
+                <span style={{ fontSize: '0.8rem', color: 'rgba(250,247,242,0.6)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Heart size={13} fill="var(--color-terracotta)" color="var(--color-terracotta)" />
+                  {editorTrip.likes_count ?? 0} {editorTrip.likes_count === 1 ? 'like' : 'likes'}
+                </span>
               </div>
               <h3 style={{ color: 'var(--color-ivory)', fontSize: '2rem', marginBottom: '12px' }}>
-                {trips[0].title}
+                {editorTrip.title}
               </h3>
               <p style={{ color: 'rgba(250,247,242,0.8)', fontSize: '1.05rem', marginBottom: '20px' }}>
-                {trips[0].notes}
+                {editorTripNotes}
               </p>
-              <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', fontSize: '0.9rem', color: 'rgba(250,247,242,0.7)' }}>
+              <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', fontSize: '0.9rem', color: 'rgba(250,247,242,0.7)', flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ color: 'rgba(250,247,242,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Author</div>
-                  <div style={{ color: '#fff', fontWeight: 600 }}>{trips[0].author_name}</div>
+                  <div style={{ color: '#fff', fontWeight: 600 }}>{editorTrip.author_name || 'Roamly Curator'}</div>
                 </div>
                 <div>
                   <div style={{ color: 'rgba(250,247,242,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Budget</div>
-                  <div style={{ color: '#fff', fontWeight: 600 }}>${Number(trips[0].estimated_budget).toLocaleString()} USD</div>
+                  <div style={{ color: '#fff', fontWeight: 600 }}>${Number(editorTrip.estimated_budget || 0).toLocaleString()} USD</div>
                 </div>
                 <div>
                   <div style={{ color: 'rgba(250,247,242,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Itinerary Stops</div>
-                  <div style={{ color: '#fff', fontWeight: 600 }}>{trips[0].stops_count} places</div>
+                  <div style={{ color: '#fff', fontWeight: 600 }}>{editorTrip.stops_count ?? 0} places</div>
                 </div>
               </div>
-              <Link to={`/trips/${trips[0].id}`} className="btn btn-primary">
+              <Link to={`/trips/${editorTrip.id}`} className="btn btn-primary">
                 <span>Explore Full Itinerary &amp; Timeline</span>
                 <ArrowRight size={16} />
               </Link>
             </div>
-            <div style={{ borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid rgba(250,247,242,0.2)' }}>
+            <div style={{ borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: '1px solid rgba(250,247,242,0.2)', aspectRatio: '16/10', backgroundColor: '#2C3531' }}>
               <img
-                src={trips[0].cover_image || 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'}
-                alt={trips[0].title}
+                src={editorTripImage}
+                alt={editorTrip.title}
+                onError={(e) => {
+                  if (e.currentTarget.src !== heroImage) {
+                    e.currentTarget.src = heroImage;
+                  }
+                }}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>

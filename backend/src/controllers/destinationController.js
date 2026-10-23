@@ -8,7 +8,7 @@ const { getDb } = require('../config/db');
 function getAllDestinations(req, res, next) {
   try {
     const db = getDb();
-    const userId = req.user ? req.user.id : 1;
+    const userId = req.user ? req.user.id : null;
     const { search, continent, budget_tier } = req.query;
 
     let query = `
@@ -71,7 +71,7 @@ function getAllDestinations(req, res, next) {
 function getDestinationById(req, res, next) {
   try {
     const db = getDb();
-    const userId = req.user ? req.user.id : 1;
+    const userId = req.user ? req.user.id : null;
     const { id } = req.params;
 
     const dest = db.prepare(`
@@ -117,7 +117,7 @@ function getDestinationById(req, res, next) {
         (SELECT COUNT(*) FROM comments c WHERE c.trip_id = t.id) AS comments_count
       FROM trips t
       JOIN users u ON u.id = t.user_id
-      WHERE t.destination_id = ?
+      WHERE t.destination_id = ? AND t.visibility = 'public'
       ORDER BY t.created_at DESC
     `).all(id);
 

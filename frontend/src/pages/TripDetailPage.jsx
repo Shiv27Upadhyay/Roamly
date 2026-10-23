@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar,
   MapPin,
@@ -11,20 +11,25 @@ import {
   ArrowLeft,
   Layers,
   Send,
-  User,
-  Clock
+  Share2,
+  Globe,
+  Lock,
+  Link2
 } from 'lucide-react';
-import { api, getActiveUserId } from '../services/api';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { DetailSkeleton } from '../components/common/LoadingSkeleton';
-import ErrorBanner from '../components/common/ErrorBanner';
+import ShareJourneyModal from '../components/trips/ShareJourneyModal';
 
 export default function TripDetailPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const shareToken = searchParams.get('token') || null;
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const currentUserId = getActiveUserId();
+  const { user, openAuthModal } = useAuth();
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -41,15 +46,16 @@ export default function TripDetailPage() {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState('');
 
-  // Delete Trip Modal
+  // Modals
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const fetchTrip = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.getTripById(id);
+      const res = await api.getTripById(id, shareToken);
       const data = res.data;
       setTrip(data);
       setIsLiked(Boolean(data.is_liked));
@@ -64,20 +70,28 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     fetchTrip();
-  }, [id]);
+  }, [id, user, shareToken]);
 
   const handleToggleLike = async () => {
+    if (!user) {
+      openAuthModal('Sign in with Google to like this itinerary.');
+      return;
+    }
     if (likeLoading) return;
     setLikeLoading(true);
     try {
-      const res = await api.toggleTripLike(id);
+      const res = await api.toggleTripLike(id, shareToken);
       setIsLiked(res.data.liked);
       setLikesCount(res.data.likes_count);
       if (res.data.liked) {
         addToast(`You liked "${trip.title}"`, 'success');
       }
     } catch (err) {
-      addToast(err.message || 'Failed to update like.', 'error');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in to like this itinerary.');
+      } else {
+        addToast(err.message || 'Failed to update like.', 'error');
+      }
     } finally {
       setLikeLoading(false);
     }
@@ -90,7 +104,11 @@ export default function TripDetailPage() {
       addToast(`Trip "${trip.title}" deleted successfully.`, 'info');
       navigate('/trips');
     } catch (err) {
-      addToast(err.message || 'Failed to delete trip.', 'error');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in again.');
+      } else {
+        addToast(err.message || 'Failed to delete trip.', 'error');
+      }
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
@@ -99,6 +117,10 @@ export default function TripDetailPage() {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
+    if (!user) {
+      openAuthModal('Sign in with Google to post traveler notes and recommendations.');
+      return;
+    }
     if (!newComment.trim() || newComment.trim().length < 2) {
       setCommentError('Comment must be at least 2 characters long.');
       return;
@@ -106,12 +128,16 @@ export default function TripDetailPage() {
     setCommentError('');
     setCommentSubmitting(true);
     try {
-      const res = await api.addTripComment(id, newComment.trim());
+      const res = await api.addTripComment(id, newComment.trim(), shareToken);
       setComments((prev) => [...prev, res.data]);
       setNewComment('');
       addToast('Comment published!', 'success');
     } catch (err) {
-      setCommentError(err.message || 'Failed to post comment.');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in to post a comment.');
+      } else {
+        setCommentError(err.message || 'Failed to post comment.');
+      }
     } finally {
       setCommentSubmitting(false);
     }
@@ -123,7 +149,11 @@ export default function TripDetailPage() {
       setComments((prev) => prev.filter((c) => c.id !== commentId));
       addToast('Comment deleted.', 'info');
     } catch (err) {
-      addToast(err.message || 'Failed to delete comment.', 'error');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in again.');
+      } else {
+        addToast(err.message || 'Failed to delete comment.', 'error');
+      }
     }
   };
 
@@ -160,7 +190,7 @@ export default function TripDetailPage() {
     return acc;
   }, {});
 
-  const isOwner = trip.user_id === currentUserId || trip.is_owner;
+  const isOwner = Boolean(user && trip.user_id === user.id) || Boolean(trip.is_owner);
 
   return (
     <div style={{ paddingBottom: 'var(--space-20)' }}>
@@ -174,6 +204,16 @@ export default function TripDetailPage() {
         {/* Owner Controls */}
         {isOwner && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setShareModalOpen(true)}
+              className="btn btn-outline btn-sm"
+              style={{ backgroundColor: 'var(--color-ivory)' }}
+              title="Share this journey and manage privacy"
+            >
+              <Share2 size={15} color="var(--color-terracotta)" />
+              <span>Share Journey</span>
+            </button>
             <Link to={`/trips/${trip.id}/edit`} className="btn btn-outline btn-sm">
               <Edit3 size={15} />
               <span>Edit Trip</span>
@@ -207,14 +247,51 @@ export default function TripDetailPage() {
         }} />
 
         <div className="container" style={{ position: 'relative', zIndex: 2, paddingTop: '160px', paddingBottom: '36px', color: 'var(--color-ivory)' }}>
-          {trip.destination_title && (
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px', alignItems: 'center' }}>
+            {trip.destination_title && (
               <Link to={`/destinations/${trip.destination_id}`} className="badge badge-sand" style={{ background: 'rgba(250,247,242,0.95)', color: 'var(--color-ink)' }}>
                 <MapPin size={13} color="var(--color-terracotta)" />
                 <span>{trip.destination_title}, {trip.destination_country}</span>
               </Link>
-            </div>
-          )}
+            )}
+
+            {/* Owner Visibility Status Pill */}
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(true)}
+                className={`badge ${trip.visibility === 'unlisted' ? 'badge-ochre' : trip.visibility === 'private' ? 'badge-sand' : 'badge-sage'}`}
+                style={{
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600
+                }}
+                title="Click to manage trip privacy & sharing"
+              >
+                {trip.visibility === 'unlisted' ? (
+                  <>
+                    <Link2 size={13} />
+                    <span>Unlisted (Secret Link)</span>
+                  </>
+                ) : trip.visibility === 'private' ? (
+                  <>
+                    <Lock size={13} />
+                    <span>Private (Only You)</span>
+                  </>
+                ) : (
+                  <>
+                    <Globe size={13} />
+                    <span>Public</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
 
           <h1 style={{ color: 'var(--color-ivory)', marginBottom: '12px' }}>
             {trip.title}
@@ -429,7 +506,7 @@ export default function TripDetailPage() {
                             </span>
                           </div>
 
-                          {c.user_id === currentUserId && (
+                          {user && c.user_id === user.id && (
                             <button
                               onClick={() => handleDeleteComment(c.id)}
                               style={{ color: 'var(--color-danger)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -493,6 +570,35 @@ export default function TripDetailPage() {
                 <Heart size={18} fill={isLiked ? '#FFFFFF' : 'none'} strokeWidth={2.2} />
                 <span>{isLiked ? 'Liked this Trip' : 'Like Itinerary'} ({likesCount})</span>
               </button>
+
+              {/* Owner Actions */}
+              {isOwner && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShareModalOpen(true)}
+                    className="btn btn-primary btn-sm"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    <Share2 size={15} />
+                    <span>Share Journey &amp; Privacy</span>
+                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Link to={`/trips/${id}/edit`} className="btn btn-outline btn-sm" style={{ flex: 1, display: 'inline-flex', justifyContent: 'center' }}>
+                      <Edit3 size={14} />
+                      <span>Edit Itinerary</span>
+                    </Link>
+                    <button
+                      onClick={() => setDeleteModalOpen(true)}
+                      className="btn btn-danger btn-sm"
+                      style={{ flex: 1, display: 'inline-flex', justifyContent: 'center' }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete Trip</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Destination Link Card */}
@@ -530,6 +636,19 @@ export default function TripDetailPage() {
         loading={deleteLoading}
         onConfirm={handleDeleteTrip}
         onCancel={() => setDeleteModalOpen(false)}
+      />
+
+      {/* Share Journey & Privacy Modal */}
+      <ShareJourneyModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        trip={trip}
+        onTripUpdated={(updatedTrip) => {
+          setTrip((prev) => ({
+            ...prev,
+            ...updatedTrip
+          }));
+        }}
       />
     </div>
   );

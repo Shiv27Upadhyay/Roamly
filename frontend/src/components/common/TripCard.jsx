@@ -1,18 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MessageSquare, Calendar, MapPin, Layers } from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function TripCard({ trip, onLikeToggle }) {
   const [isLiked, setIsLiked] = useState(trip.is_liked);
   const [likesCount, setLikesCount] = useState(trip.likes_count || 0);
   const [loading, setLoading] = useState(false);
+  const { user, openAuthModal } = useAuth();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    setIsLiked(trip.is_liked);
+    setLikesCount(trip.likes_count || 0);
+  }, [trip.is_liked, trip.likes_count]);
 
   const handleLike = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!user) {
+      openAuthModal('Sign in with Google to like this itinerary.');
+      return;
+    }
+
     if (loading) return;
 
     setLoading(true);
@@ -27,7 +40,11 @@ export default function TripCard({ trip, onLikeToggle }) {
         onLikeToggle(trip.id, res.data.liked, res.data.likes_count);
       }
     } catch (err) {
-      addToast(err.message || 'Failed to update like.', 'error');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in to like this itinerary.');
+      } else {
+        addToast(err.message || 'Failed to update like.', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -55,30 +72,38 @@ export default function TripCard({ trip, onLikeToggle }) {
 
   return (
     <article className="editorial-card">
-      <Link to={`/trips/${trip.id}`} className="img-wrap" style={{ aspectRatio: '16/10' }}>
-        <img
-          src={trip.cover_image || 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'}
-          alt={trip.title}
-          loading="lazy"
-          onError={handleImageError}
-        />
+      <div className="img-wrap" style={{ aspectRatio: '16/10' }}>
+        <Link to={`/trips/${trip.id}`} aria-label={`View itinerary: ${trip.title}`} style={{ display: 'block', width: '100%', height: '100%' }}>
+          <img
+            src={trip.cover_image || 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=800&q=80'}
+            alt={trip.title}
+            loading="lazy"
+            onError={handleImageError}
+          />
+        </Link>
+
         {/* Destination Pill */}
         {trip.destination_title && (
-          <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
-            <span className="badge badge-sand" style={{ background: 'rgba(250,247,242,0.95)', backdropFilter: 'blur(4px)' }}>
+          <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 2 }}>
+            <Link
+              to={`/destinations/${trip.destination_id}`}
+              onClick={(e) => e.stopPropagation()}
+              className="badge badge-sand"
+              style={{ background: 'rgba(250,247,242,0.95)', backdropFilter: 'blur(4px)', textDecoration: 'none', color: 'inherit' }}
+            >
               <MapPin size={12} color="var(--color-terracotta)" />
               <span>{trip.destination_title}</span>
-            </span>
+            </Link>
           </div>
         )}
 
         {/* Budget Pill */}
-        <div style={{ position: 'absolute', bottom: '12px', right: '12px' }}>
+        <div style={{ position: 'absolute', bottom: '12px', right: '12px', pointerEvents: 'none' }}>
           <span className="badge badge-ochre" style={{ background: 'rgba(28,36,33,0.85)', color: '#FAF7F2', border: 'none' }}>
             ${Number(trip.estimated_budget || 0).toLocaleString()} {trip.currency || 'USD'}
           </span>
         </div>
-      </Link>
+      </div>
 
       <div className="card-body">
         {/* Date line */}

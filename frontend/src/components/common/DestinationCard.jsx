@@ -1,17 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, MapPin, ArrowRight } from 'lucide-react';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
 export default function DestinationCard({ destination, onBookmarkToggle }) {
   const [isBookmarked, setIsBookmarked] = useState(destination.is_bookmarked);
   const [loading, setLoading] = useState(false);
+  const { user, openAuthModal } = useAuth();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    setIsBookmarked(destination.is_bookmarked);
+  }, [destination.is_bookmarked]);
 
   const handleBookmarkClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!user) {
+      openAuthModal('Sign in with Google to save destinations to your wishlist.');
+      return;
+    }
+
     if (loading) return;
 
     setLoading(true);
@@ -28,7 +40,11 @@ export default function DestinationCard({ destination, onBookmarkToggle }) {
         onBookmarkToggle(destination.id, newState);
       }
     } catch (err) {
-      addToast(err.message || 'Failed to update bookmark.', 'error');
+      if (err.status === 401) {
+        openAuthModal('Your session has expired. Please sign in to save destinations.');
+      } else {
+        addToast(err.message || 'Failed to update bookmark.', 'error');
+      }
     } finally {
       setLoading(false);
     }

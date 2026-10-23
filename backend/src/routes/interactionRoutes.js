@@ -5,11 +5,12 @@ const {
   deleteComment
 } = require('../controllers/interactionController');
 const { validateIdParam } = require('../middleware/validate');
+const { requireAuth } = require('../middleware/auth');
 
 // Bookmarks listing for active user
-router.get('/bookmarks', getUserBookmarks);
+router.get('/bookmarks', requireAuth, getUserBookmarks);
 
 // Delete comment (verified author ownership)
-router.delete('/comments/:id', validateIdParam('id'), deleteComment);
+router.delete('/comments/:id', requireAuth, validateIdParam('id'), deleteComment);
 
 module.exports = router;
