@@ -4,6 +4,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://roamly-ax2g.onrender.com/api/:path*"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
