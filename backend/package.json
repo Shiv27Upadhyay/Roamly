@@ -9,7 +9,9 @@
     "seed": "node src/config/seed.js",
     "test:api": "node test/api_test.js",
     "test:security": "node test/auth_security_test.js",
-    "test:privacy": "node test/trip_privacy_test.js"
+    "test:privacy": "node test/trip_privacy_test.js",
+    "test:groups": "node test/group_trip_test.js",
+    "test:media": "node test/trip_media_test.js"
   },
   "keywords": [
     "travel",
@@ -21,6 +23,7 @@
   "author": "Roamly Team",
   "license": "ISC",
   "dependencies": {
+    "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -28,7 +31,8 @@
     "google-auth-library": "^11.3.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

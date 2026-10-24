@@ -49,6 +49,9 @@ export default function InitialLoader() {
       } catch {
         // Storage might be restricted in some private modes
       }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('roamly:initial-loader-dismissed'));
+      }
       setVisible(false);
     };
 

@@ -93,6 +93,30 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 8. TRIP GROUPS (Group workspaces bound to a trip)
+CREATE TABLE IF NOT EXISTS trip_groups (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  trip_id INTEGER UNIQUE NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  invite_code TEXT UNIQUE NOT NULL,
+  invite_token TEXT UNIQUE NOT NULL,
+  invite_status TEXT NOT NULL DEFAULT 'active' CHECK (invite_status IN ('active', 'revoked')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 9. TRIP GROUP MEMBERS (Collaborators and participants)
+CREATE TABLE IF NOT EXISTS trip_group_members (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  group_id INTEGER NOT NULL REFERENCES trip_groups(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'editor', 'member')),
+  joined_via TEXT NOT NULL DEFAULT 'owner' CHECK (joined_via IN ('owner', 'invite_code', 'invite_link', 'qr_code')),
+  joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(group_id, user_id)
+);
+
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
 CREATE INDEX IF NOT EXISTS idx_trips_destination_id ON trips(destination_id);
@@ -104,6 +128,36 @@ CREATE INDEX IF NOT EXISTS idx_bookmarks_dest ON bookmarks(destination_id);
 CREATE INDEX IF NOT EXISTS idx_trip_likes_trip ON trip_likes(trip_id);
 CREATE INDEX IF NOT EXISTS idx_comments_trip ON comments(trip_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_groups_trip_id ON trip_groups(trip_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_groups_invite_code ON trip_groups(invite_code);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_groups_invite_token ON trip_groups(invite_token);
+CREATE INDEX IF NOT EXISTS idx_trip_group_members_group_id ON trip_group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_trip_group_members_user_id ON trip_group_members(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_group_members_unique ON trip_group_members(group_id, user_id);
+
+-- 10. TRIP MEDIA (Photos & Videos stored in Cloudinary)
+CREATE TABLE IF NOT EXISTS trip_media (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  media_type TEXT NOT NULL CHECK (media_type IN ('photo', 'video')),
+  public_id TEXT UNIQUE NOT NULL,
+  secure_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  format TEXT NOT NULL,
+  bytes INTEGER NOT NULL,
+  width INTEGER,
+  height INTEGER,
+  duration REAL,
+  caption TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_trip_media_trip_id ON trip_media(trip_id);
+CREATE INDEX IF NOT EXISTS idx_trip_media_type ON trip_media(media_type);
+CREATE INDEX IF NOT EXISTS idx_trip_media_user_id ON trip_media(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_media_public_id ON trip_media(public_id);
+CREATE INDEX IF NOT EXISTS idx_trip_media_trip_type ON trip_media(trip_id, media_type, created_at DESC);
 `;
 
 /**
@@ -150,6 +204,73 @@ function migrateSchema(db) {
     if (!hasVisibilityIndex) {
       db.exec('CREATE INDEX IF NOT EXISTS idx_trips_visibility ON trips(visibility);');
     }
+  }
+
+  // 3. Trip groups and group members table migrations
+  const tripGroupsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='trip_groups';").all();
+  if (tripGroupsTable.length === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS trip_groups (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id INTEGER UNIQUE NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        invite_code TEXT UNIQUE NOT NULL,
+        invite_token TEXT UNIQUE NOT NULL,
+        invite_status TEXT NOT NULL DEFAULT 'active' CHECK (invite_status IN ('active', 'revoked')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_groups_trip_id ON trip_groups(trip_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_groups_invite_code ON trip_groups(invite_code);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_groups_invite_token ON trip_groups(invite_token);
+    `);
+  }
+
+  const tripGroupMembersTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='trip_group_members';").all();
+  if (tripGroupMembersTable.length === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS trip_group_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id INTEGER NOT NULL REFERENCES trip_groups(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('owner', 'editor', 'member')),
+        joined_via TEXT NOT NULL DEFAULT 'owner' CHECK (joined_via IN ('owner', 'invite_code', 'invite_link', 'qr_code')),
+        joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(group_id, user_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_trip_group_members_group_id ON trip_group_members(group_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_group_members_user_id ON trip_group_members(user_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_group_members_unique ON trip_group_members(group_id, user_id);
+    `);
+  }
+
+  // 4. Trip media table migrations
+  const tripMediaTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='trip_media';").all();
+  if (tripMediaTable.length === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS trip_media (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        media_type TEXT NOT NULL CHECK (media_type IN ('photo', 'video')),
+        public_id TEXT UNIQUE NOT NULL,
+        secure_url TEXT NOT NULL,
+        thumbnail_url TEXT,
+        format TEXT NOT NULL,
+        bytes INTEGER NOT NULL,
+        width INTEGER,
+        height INTEGER,
+        duration REAL,
+        caption TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_trip_media_trip_id ON trip_media(trip_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_media_type ON trip_media(media_type);
+      CREATE INDEX IF NOT EXISTS idx_trip_media_user_id ON trip_media(user_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_trip_media_public_id ON trip_media(public_id);
+      CREATE INDEX IF NOT EXISTS idx_trip_media_trip_type ON trip_media(trip_id, media_type, created_at DESC);
+    `);
   }
 }
 

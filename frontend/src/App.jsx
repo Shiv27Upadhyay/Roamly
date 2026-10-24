@@ -17,6 +17,9 @@ import TripsPage from './pages/TripsPage';
 import TripDetailPage from './pages/TripDetailPage';
 import CreateEditTripPage from './pages/CreateEditTripPage';
 import ProfilePage from './pages/ProfilePage';
+import JoinTripPage from './pages/JoinTripPage';
+import SmartFeaturesPage from './pages/SmartFeaturesPage';
+import MostLovedPage from './pages/MostLovedPage';
 
 // 404 NotFound
 function NotFoundPage() {
@@ -52,9 +55,12 @@ function AnimatedRoutes() {
       <Route path="/destinations/:id" element={<DestinationDetailPage />} />
       <Route path="/trips" element={<TripsPage />} />
       <Route path="/trips/new" element={<CreateEditTripPage />} />
+      <Route path="/trips/join" element={<JoinTripPage />} />
       <Route path="/trips/:id" element={<TripDetailPage />} />
       <Route path="/trips/:id/edit" element={<CreateEditTripPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/smart-features" element={<SmartFeaturesPage />} />
+      <Route path="/most-loved" element={<MostLovedPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

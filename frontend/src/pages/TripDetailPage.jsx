@@ -14,7 +14,9 @@ import {
   Share2,
   Globe,
   Lock,
-  Link2
+  Link2,
+  Users,
+  UserPlus
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +24,11 @@ import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { DetailSkeleton } from '../components/common/LoadingSkeleton';
 import ShareJourneyModal from '../components/trips/ShareJourneyModal';
+import GroupInviteModal from '../components/trips/GroupInviteModal';
+import MediaUploadModal from '../components/trips/MediaUploadModal';
+import TripPhotosSection from '../components/trips/TripPhotosSection';
+import TripVideosSection from '../components/trips/TripVideosSection';
+import PhotoLightboxModal from '../components/trips/PhotoLightboxModal';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -50,6 +57,45 @@ export default function TripDetailPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [group, setGroup] = useState(null);
+
+  // Media (Photos & Videos)
+  const [photos, setPhotos] = useState([]);
+  const [videos, setVideos] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadModalType, setUploadModalType] = useState('photo');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const fetchMedia = async () => {
+    setMediaLoading(true);
+    try {
+      const params = shareToken ? { token: shareToken } : {};
+      const res = await api.getTripMedia(id, params);
+      setPhotos(res.photos || []);
+      setVideos(res.videos || []);
+    } catch {
+      setPhotos([]);
+      setVideos([]);
+    } finally {
+      setMediaLoading(false);
+    }
+  };
+
+  const fetchGroup = async () => {
+    if (!user) {
+      setGroup(null);
+      return;
+    }
+    try {
+      const res = await api.getTripGroup(id);
+      setGroup(res.data);
+    } catch {
+      setGroup(null);
+    }
+  };
 
   const fetchTrip = async () => {
     setLoading(true);
@@ -70,7 +116,58 @@ export default function TripDetailPage() {
 
   useEffect(() => {
     fetchTrip();
+    fetchGroup();
+    fetchMedia();
   }, [id, user, shareToken]);
+
+  const handleOpenUpload = (type = 'photo') => {
+    if (!user) {
+      openAuthModal('Sign in with Google to upload trip photos and videos.');
+      return;
+    }
+    setUploadModalType(type);
+    setUploadModalOpen(true);
+  };
+
+  const handleDeletePhoto = async (photoId) => {
+    try {
+      await api.deleteTripMedia(id, photoId);
+      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+      addToast('Photo deleted from gallery.', 'info');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete photo.', 'error');
+    }
+  };
+
+  const handleDeleteVideo = async (videoId) => {
+    try {
+      await api.deleteTripMedia(id, videoId);
+      setVideos((prev) => prev.filter((v) => v.id !== videoId));
+      addToast('Video deleted from gallery.', 'info');
+    } catch (err) {
+      addToast(err.message || 'Failed to delete video.', 'error');
+    }
+  };
+
+  const handleOpenLightbox = (index) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const handleCreateGroup = async () => {
+    if (!user) {
+      openAuthModal('Sign in with Google to create a companion group.');
+      return;
+    }
+    try {
+      const res = await api.createTripGroup(id);
+      setGroup(res.data);
+      setGroupModalOpen(true);
+      addToast('Group workspace created! Invite companions with code or QR.', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to create group workspace.', 'error');
+    }
+  };
 
   const handleToggleLike = async () => {
     if (!user) {
@@ -191,6 +288,8 @@ export default function TripDetailPage() {
   }, {});
 
   const isOwner = Boolean(user && trip.user_id === user.id) || Boolean(trip.is_owner);
+  const isGroupMember = Boolean(trip.is_group_member || (group && user && group.members?.some(m => m.user_id === user.id)));
+  const canUploadMedia = Boolean(user && (isOwner || isGroupMember));
 
   return (
     <div style={{ paddingBottom: 'var(--space-20)' }}>
@@ -201,33 +300,71 @@ export default function TripDetailPage() {
           <span>Back to Itineraries</span>
         </Link>
 
-        {/* Owner Controls */}
-        {isOwner && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Action Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {isOwner && (
+            <>
+              {group ? (
+                <button
+                  type="button"
+                  onClick={() => setGroupModalOpen(true)}
+                  className="btn btn-outline btn-sm"
+                  style={{ backgroundColor: 'var(--color-ivory)' }}
+                  title="Manage companions, invite code, and QR"
+                >
+                  <Users size={15} color="var(--color-terracotta)" />
+                  <span>Companions ({group.members_count || group.members?.length || 1})</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCreateGroup}
+                  className="btn btn-outline btn-sm"
+                  style={{ backgroundColor: 'var(--color-ivory)' }}
+                  title="Invite travel companions to this trip"
+                >
+                  <UserPlus size={15} color="var(--color-terracotta)" />
+                  <span>Invite Companions</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShareModalOpen(true)}
+                className="btn btn-outline btn-sm"
+                style={{ backgroundColor: 'var(--color-ivory)' }}
+                title="Share this journey and manage privacy"
+              >
+                <Share2 size={15} color="var(--color-terracotta)" />
+                <span>Share Journey</span>
+              </button>
+              <Link to={`/trips/${trip.id}/edit`} className="btn btn-outline btn-sm">
+                <Edit3 size={15} />
+                <span>Edit Trip</span>
+              </Link>
+              <button
+                onClick={() => setDeleteModalOpen(true)}
+                className="btn btn-danger btn-sm"
+                title="Delete this itinerary"
+              >
+                <Trash2 size={15} />
+                <span>Delete</span>
+              </button>
+            </>
+          )}
+
+          {!isOwner && (group || trip.is_group_member) && (
             <button
               type="button"
-              onClick={() => setShareModalOpen(true)}
+              onClick={() => setGroupModalOpen(true)}
               className="btn btn-outline btn-sm"
               style={{ backgroundColor: 'var(--color-ivory)' }}
-              title="Share this journey and manage privacy"
+              title="View travel companions"
             >
-              <Share2 size={15} color="var(--color-terracotta)" />
-              <span>Share Journey</span>
+              <Users size={15} color="var(--color-terracotta)" />
+              <span>Group Companions ({group?.members_count || group?.members?.length || 'Joined'})</span>
             </button>
-            <Link to={`/trips/${trip.id}/edit`} className="btn btn-outline btn-sm">
-              <Edit3 size={15} />
-              <span>Edit Trip</span>
-            </Link>
-            <button
-              onClick={() => setDeleteModalOpen(true)}
-              className="btn btn-danger btn-sm"
-              title="Delete this itinerary"
-            >
-              <Trash2 size={15} />
-              <span>Delete</span>
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Hero Banner */}
@@ -291,6 +428,53 @@ export default function TripDetailPage() {
                 )}
               </button>
             )}
+
+            {/* Group Companions Badge */}
+            {group ? (
+              <button
+                type="button"
+                onClick={() => setGroupModalOpen(true)}
+                className="badge badge-sage"
+                style={{
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  backgroundColor: 'rgba(79, 99, 82, 0.9)',
+                  color: 'var(--color-ivory)'
+                }}
+                title="View travel companions"
+              >
+                <Users size={13} />
+                <span>Group Trip • {group.members_count || group.members?.length || 1} travelers</span>
+              </button>
+            ) : isOwner ? (
+              <button
+                type="button"
+                onClick={handleCreateGroup}
+                className="badge badge-sand"
+                style={{
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '4px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  backgroundColor: 'rgba(250,247,242,0.85)',
+                  color: 'var(--color-ink)'
+                }}
+                title="Click to enable group collaboration"
+              >
+                <UserPlus size={13} color="var(--color-terracotta)" />
+                <span>Enable Group Trip</span>
+              </button>
+            ) : null}
           </div>
 
           <h1 style={{ color: 'var(--color-ivory)', marginBottom: '12px' }}>
@@ -438,6 +622,25 @@ export default function TripDetailPage() {
                 </div>
               )}
             </section>
+
+            {/* Trip Photos Gallery */}
+            <TripPhotosSection
+              photos={photos}
+              loading={mediaLoading}
+              canUpload={canUploadMedia}
+              onOpenUpload={() => handleOpenUpload('photo')}
+              onDeletePhoto={handleDeletePhoto}
+              onPhotoClick={handleOpenLightbox}
+            />
+
+            {/* Trip Videos Gallery */}
+            <TripVideosSection
+              videos={videos}
+              loading={mediaLoading}
+              canUpload={canUploadMedia}
+              onOpenUpload={() => handleOpenUpload('video')}
+              onDeleteVideo={handleDeleteVideo}
+            />
 
             {/* Comments Discussion Section */}
             <section style={{ paddingTop: 'var(--space-8)', borderTop: '1px solid var(--color-border)' }}>
@@ -648,6 +851,42 @@ export default function TripDetailPage() {
             ...prev,
             ...updatedTrip
           }));
+        }}
+      />
+
+      {/* Group Companions & QR Modal */}
+      <GroupInviteModal
+        isOpen={groupModalOpen}
+        onClose={() => setGroupModalOpen(false)}
+        trip={trip}
+        group={group}
+        isOwner={isOwner}
+        onGroupUpdated={fetchGroup}
+      />
+
+      {/* Media Upload Modal */}
+      <MediaUploadModal
+        isOpen={uploadModalOpen}
+        onClose={() => setUploadModalOpen(false)}
+        tripId={id}
+        initialMediaType={uploadModalType}
+        onUploadComplete={fetchMedia}
+      />
+
+      {/* Photo Lightbox Modal */}
+      <PhotoLightboxModal
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        photos={photos}
+        currentIndex={lightboxIndex}
+        onNavigate={setLightboxIndex}
+        onDelete={async (photoId) => {
+          await handleDeletePhoto(photoId);
+          if (photos.length <= 1) {
+            setLightboxOpen(false);
+          } else if (lightboxIndex >= photos.length - 1) {
+            setLightboxIndex(Math.max(0, photos.length - 2));
+          }
         }}
       />
     </div>

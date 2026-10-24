@@ -13,7 +13,7 @@ function getAllTrips(req, res, next) {
     const { destination_id, user_id, search } = req.query;
 
     let query = `
-      SELECT 
+      SELECT
         t.id,
         t.user_id,
         t.destination_id,
@@ -99,7 +99,7 @@ function getTripById(req, res, next) {
     const providedToken = req.query.token || req.headers['x-share-token'] || null;
 
     const trip = db.prepare(`
-      SELECT 
+      SELECT
         t.id,
         t.user_id,
         t.destination_id,
@@ -138,9 +138,21 @@ function getTripById(req, res, next) {
 
     const isOwner = Boolean(currentUserId && trip.user_id === currentUserId);
 
+    // Check if current user is an active member/collaborator of this trip's group
+    let isGroupMember = false;
+    if (currentUserId && !isOwner) {
+      const membership = db.prepare(`
+        SELECT 1
+        FROM trip_group_members tgm
+        JOIN trip_groups tg ON tg.id = tgm.group_id
+        WHERE tg.trip_id = ? AND tgm.user_id = ?
+      `).get(id, currentUserId);
+      isGroupMember = Boolean(membership);
+    }
+
     // Enforce visibility authorization rules
     if (trip.visibility === 'private') {
-      if (!isOwner) {
+      if (!isOwner && !isGroupMember) {
         // Uniform 404 to avoid disclosing existence of private trip
         return res.status(404).json({
           success: false,
@@ -149,7 +161,7 @@ function getTripById(req, res, next) {
       }
     } else if (trip.visibility === 'unlisted') {
       const hasValidToken = trip.share_token && isValidShareToken(providedToken, trip.share_token);
-      if (!isOwner && !hasValidToken) {
+      if (!isOwner && !isGroupMember && !hasValidToken) {
         return res.status(404).json({
           success: false,
           error: `Trip with ID ${id} not found.`
@@ -167,7 +179,7 @@ function getTripById(req, res, next) {
 
     // Fetch Comments
     const comments = db.prepare(`
-      SELECT 
+      SELECT
         c.id,
         c.trip_id,
         c.user_id,
@@ -189,6 +201,7 @@ function getTripById(req, res, next) {
       ...trip,
       is_liked: Boolean(trip.is_liked),
       is_owner: isOwner,
+      is_group_member: isGroupMember,
       stops_total_cost: stopsTotalCost,
       stops,
       comments

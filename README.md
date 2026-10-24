@@ -110,6 +110,24 @@ Roamly uses a decoupled client-server architecture with an integrated developmen
 - **Interaction 2: Itinerary Likes**: Toggle likes on trips with live like count counters.
 - **Interaction 3: Discussion Comments**: Real-time discussion thread on each trip with author attribution and author-only comment deletion.
 
+### Group Trips & QR Invitations (`/trips/:id`, `/trips/join`)
+- **Trip Workspaces**: Form collaborative travel groups with fellow travelers.
+- **Cryptographic Share Codes**: Memorable alphanumeric invite codes (`ROAM-XXXX`) with 20-bit entropy and high-entropy base64url tokens.
+- **Dynamic QR Codes**: Generated vector SVG and raster QR codes for instant mobile companion onboarding.
+- **Invite Lifecycle Management**: Rotate invitation tokens instantly or revoke access across active groups.
+
+### Photos & Videos Media Experience (`/trips/:id`)
+- **Distinct Media Sections**: Separate galleries for high-resolution trip Photos and native in-page Videos.
+- **Direct Cloudinary Uploads**: Client-side direct signed uploads with zero server bottleneck and authentic XMLHttpRequest progress tracking.
+- **Photo Lightbox**: Full-screen modal viewer with keyboard arrow navigation, zoom display, download options, captions, and uploader attribution.
+- **In-Page Video Playback**: Native HTML5 controls, duration badges (up to 180s / 3 minutes), and poster thumbnails.
+- **Client & Server Validation**: Strict size caps (Photos $\le$ 10 MB, Videos $\le$ 100 MB), MIME whitelisting (JPEG, PNG, WebP, HEIC, MP4, MOV, WebM), and pre-upload duration verification.
+- **Privacy Enforcement**: Private and unlisted trips deliver signed Cloudinary URLs accessible only to authorized owners and companion members.
+
+### Smart Features Concepts (`/smart-features`)
+- **Smart Memories (Concept Preview)**: Facial-recognition-inspired trip photo discovery prototype demonstrating companion persona clustering, sample photo filtering, and ethical privacy safeguards without active biometric processing.
+- **Smart Search (Coming Soon Preview)**: Natural-language travel discovery prototype featuring conversational prompt chips, travel-interest filters, and illustrative destination previews without fabricated live AI results.
+
 ### User Profile Dashboard (`/profile`)
 - Displays user bio, home city, avatar, and aggregated travel statistics (trips planned, destinations saved).
 - Tabbed views for "My Itineraries" and "Saved Wishlist" for quick trip management.
@@ -204,6 +222,17 @@ d:/Internship/
    # Windows Command Prompt
    copy .env.example .env
    ```
+
+   **Cloudinary Configuration (for Media Uploads):**
+   To enable photo and video uploads to Cloudinary, add your Cloudinary credentials to `backend/.env`:
+   ```env
+   # Cloudinary Media Storage (Sign up free at https://cloudinary.com)
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+   *Note: General app browsing, itineraries, and test suites operate with zero external dependencies and do not require active Cloudinary credentials.*
+
 4. Launch the backend in development mode:
    ```bash
    npm run dev
@@ -238,26 +267,35 @@ npm run preview
 
 ## 7. Verification & Testing
 
-### Backend Automated End-to-End Test Suite
-Run the test suite exercising all 11 assignment requirements:
+### Automated Backend Test Suites
+Run the isolated, non-mutating test suites covering media, group trips, authentication, and privacy:
 ```bash
 cd backend
-npm run test:api
+
+# Media Uploads & Cloudinary Integration (36 tests)
+npm run test:media
+
+# Group Trips, Invite Codes & Dynamic QR (53 tests)
+npm run test:groups
+
+# Authentication, Google OAuth & Identity Security (33 tests)
+npm run test:security
+
+# Itinerary Privacy, Unlisted Tokens & Authorization (42 tests)
+npm run test:privacy
 ```
-**Verification Scope:**
-- System health check & root welcome metadata.
-- Destination listing, title search, continent filtering, and budget filtering.
-- Destination details and related itinerary association.
-- Wishlist bookmark toggle and bookmarks retrieval.
-- Trip creation with multi-day itinerary stops (atomic transaction).
-- Validation edge cases: Missing required fields, invalid date sequences (`start_date > end_date`), negative budgets.
-- Trip updates with stop synchronization.
-- Ownership authorization: Non-author update rejection (HTTP 403).
-- Non-author trip deletion rejection (HTTP 403).
-- Authorized trip deletion with cascading cleanup of stops, likes, and comments.
-- Trip like toggle and live counter verification.
-- Trip discussion comments post and delete operations.
-- User profile data, aggregate travel statistics, and wishlist retrieval.
+**Total Backend Test Coverage:** 164 passing tests across isolated test environments without touching `roamly.db`.
+
+### Frontend Code Quality & Build Verification
+```bash
+cd frontend
+
+# Run Oxlint static analysis
+npm run lint
+
+# Run production Vite build
+npm run build
+```
 - Database persistence across server restarts.
 
 Expected result:
@@ -357,7 +395,15 @@ All backend routes are mounted under `/api` and respond with standardized JSON:
 | `POST` | `/api/trips/:id/like` | Toggle like status on an itinerary | Yes (`x-user-id`) |
 | `POST` | `/api/trips/:id/comments` | Post a new comment on an itinerary | Yes (`x-user-id`) |
 | `DELETE` | `/api/comments/:id` | Delete a comment | **Author Only** (403 if mismatched) |
-| `GET` | `/api/profile` | Get active user profile, stats, created trips, and bookmarks | Yes (`x-user-id`) |
+| `GET` | `/api/trips/:id/media` | Get separated photos and videos for a trip | Owner or Group Member (or public/valid token) |
+| `POST` | `/api/trips/:id/media/signature` | Request signed upload parameters for Cloudinary | **Owner or Group Member** (403 if outsider) |
+| `POST` | `/api/trips/:id/media` | Register verified media metadata in itinerary | **Owner or Group Member** (403 if outsider) |
+| `DELETE` | `/api/trips/:id/media/:mediaId` | Delete media asset from Cloudinary and itinerary | **Uploader or Owner Only** |
+| `GET` | `/api/trips/:id/group` | Get group companions and invite credentials | Owner or Group Member |
+| `POST` | `/api/trips/:id/group` | Create group companion workspace | **Trip Owner Only** |
+| `GET` | `/api/trips/:id/group/qr` | Generate dynamic QR code for invitation | **Trip Owner Only** |
+| `POST` | `/api/groups/join` | Join trip group via invite code or token | Authenticated User |
+| `POST` | `/api/profile` | Get active user profile, stats, created trips, and bookmarks | Yes (`x-user-id` / session) |
 | `GET` | `/api/profile/:id` | Get profile for specific user ID | No |
 
 ---

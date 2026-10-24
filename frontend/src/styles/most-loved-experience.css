@@ -1,0 +1,722 @@
+/**
+ * Roamly Cinematic Destination Experience Styles
+ * Luxury travel-film aesthetic with layered light, smooth SVG ropes,
+ * asymmetrical zigzag postcards, 3D card flips with synchronized glow bursts,
+ * and sequenced focal zooms.
+ */
+
+/* =========================================================================
+   1. SCROLL TRACK & ROOT STAGE WRAPPER (Overlay & Dedicated Page Modes)
+   ========================================================================= */
+
+/* Scroll Track (Physical scrollable heights that drive normalized progress 0 to 1) */
+.cinematic-scroll-track-overlay {
+  position: relative;
+  width: 100%;
+  height: 380vh;
+  z-index: 9990;
+}
+
+.cinematic-scroll-track-page {
+  position: relative;
+  width: 100%;
+  height: 380vh;
+  z-index: 10;
+}
+
+/* Overlay Mode (First-visit homepage cinematic: pinned sticky full-viewport stage) */
+.cinematic-overlay-stage {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 9990;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  user-select: none;
+  will-change: opacity;
+}
+
+/* Dedicated Page Mode (/most-loved route: pinned sticky below 72px navbar) */
+.cinematic-page-stage {
+  position: sticky;
+  top: 72px;
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 72px);
+  height: calc(100dvh - 72px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  user-select: none;
+  background: var(--color-ivory);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* =========================================================================
+   2. LAYERED ATMOSPHERE & LIGHTING
+   ========================================================================= */
+.cinematic-atmosphere {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 75% 65% at 50% 45%,
+    rgba(255, 255, 255, 0.93) 0%,
+    rgba(250, 247, 242, 0.95) 55%,
+    rgba(242, 235, 224, 0.97) 100%
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cinematic-radial-glow {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  width: 760px;
+  height: 520px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(208, 106, 76, 0.16) 0%,
+    rgba(217, 158, 75, 0.13) 35%,
+    rgba(242, 160, 168, 0.08) 65%,
+    transparent 80%
+  );
+  filter: blur(48px);
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+/* Subtle cinematic vignette rim */
+.cinematic-vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 120px rgba(28, 36, 33, 0.08);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* =========================================================================
+   3. TOP CONTROL BAR (Skip, Status & Controls)
+   ========================================================================= */
+.cinematic-top-bar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2.5rem 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cinematic-brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.775rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.cinematic-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cinematic-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--color-border-dark);
+  color: var(--color-ink);
+  font-size: 0.825rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.cinematic-btn-action:hover {
+  background: var(--color-ink);
+  color: var(--color-ivory);
+  border-color: var(--color-ink);
+}
+
+/* =========================================================================
+   4. SCENE 1 — “PLAN YOUR NEXT TRIP” ATMOSPHERIC TITLE
+   ========================================================================= */
+.cinematic-title-scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  z-index: 15;
+  pointer-events: none;
+  padding: 0 2rem;
+  will-change: opacity, transform;
+}
+
+.cinematic-title-scene .cinematic-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-terracotta);
+  margin-bottom: 0.75rem;
+  opacity: 0.9;
+}
+
+.cinematic-title-scene h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  color: var(--color-ink);
+  text-transform: uppercase;
+  line-height: 1.15;
+  margin-bottom: 0.75rem;
+}
+
+.cinematic-title-scene p {
+  font-size: 1.05rem;
+  color: var(--color-ink-muted);
+  max-width: 520px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   5. SCENE 4 — CENTERED HEADING “MOST-LOVED DESTINATIONS”
+   ========================================================================= */
+.cinematic-heading-reveal {
+  position: absolute;
+  top: 4.8rem;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 20;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.cinematic-heading-reveal h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+  margin-bottom: 0.25rem;
+}
+
+.cinematic-heading-reveal span.cinematic-subtitle {
+  font-family: var(--font-sans);
+  font-size: 0.825rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--color-terracotta);
+}
+
+/* =========================================================================
+   6. SCENE 2 — AIRPLANE FLIGHT & ROPES CANVAS
+   ========================================================================= */
+.cinematic-flight-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.cinematic-ropes-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9;
+}
+
+.cinematic-airplane-sprite {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  margin-left: -22px;
+  z-index: 11;
+  pointer-events: none;
+  filter: drop-shadow(0 4px 8px rgba(28, 36, 33, 0.18));
+  will-change: transform;
+}
+
+/* Airplane vapor contrail puff */
+.cinematic-plane-contrail {
+  position: absolute;
+  right: 28px;
+  top: 18px;
+  width: 48px;
+  height: 8px;
+  background: linear-gradient(to left, rgba(208, 106, 76, 0.45) 0%, rgba(242, 160, 168, 0.4) 50%, transparent 100%);
+  border-radius: var(--radius-pill);
+  filter: blur(2px);
+}
+
+/* =========================================================================
+   7. SCENE 3 & 4 — ASYMMETRICAL ZIGZAG CARDS DECK
+   ========================================================================= */
+.cinematic-cards-stage {
+  position: relative;
+  z-index: 18;
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  perspective: 1400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.5rem;
+}
+
+/* Postcard Container with 3D context */
+.cinematic-postcard-wrap {
+  position: absolute;
+  width: 320px;
+  height: 420px;
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+  transition: filter 300ms ease,
+              opacity 300ms ease;
+}
+
+/* Continuous floating wrapper */
+.cinematic-floating-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  animation: cinematicCardHover 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.cinematic-postcard-wrap.card-slot-0 .cinematic-floating-inner {
+  animation-delay: 0s;
+  animation-duration: 4.8s;
+}
+
+.cinematic-postcard-wrap.card-slot-1 .cinematic-floating-inner {
+  animation-delay: -1.6s;
+  animation-duration: 5.4s;
+}
+
+.cinematic-postcard-wrap.card-slot-2 .cinematic-floating-inner {
+  animation-delay: -3.2s;
+  animation-duration: 5.0s;
+}
+
+@keyframes cinematicCardHover {
+  0%, 100% {
+    transform: translateY(-6px);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+/* Flippable Card Body */
+.cinematic-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* =========================================================================
+   8. SPECIFIC LIGHT BURST BEHIND FLIPPING CARD (SCENE 4)
+   ========================================================================= */
+.cinematic-card-glow-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 440px;
+  height: 520px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(241, 198, 126, 0.72) 0%,
+    rgba(208, 106, 76, 0.45) 35%,
+    rgba(242, 160, 168, 0.18) 60%,
+    transparent 75%
+  );
+  border-radius: 50%;
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  will-change: opacity, transform;
+}
+
+.cinematic-card-glow-burst.burst-active {
+  opacity: 1;
+  animation: burstFlashDecay 900ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes burstFlashDecay {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.35);
+  }
+}
+
+/* =========================================================================
+   9. CARD FACES: FRONT (JOURNAL) & BACK (PHOTOGRAPHY)
+   ========================================================================= */
+.cinematic-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(28, 36, 33, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card Front: Postcard Texture */
+.cinematic-face-front {
+  background: #FAF7F2;
+  border: 1px solid var(--color-border);
+  padding: 1.5rem;
+  justify-content: space-between;
+  transform: rotateY(0deg);
+}
+
+.cinematic-face-front-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.75rem;
+}
+
+.cinematic-face-front-body {
+  margin: auto 0;
+  text-align: center;
+}
+
+.cinematic-face-front-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-sand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-terracotta);
+  margin: 0 auto 0.75rem;
+}
+
+.cinematic-face-front-title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: 0.25rem;
+}
+
+.cinematic-face-front-country {
+  font-size: 0.875rem;
+  color: var(--color-ink-muted);
+}
+
+.cinematic-face-front-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px dashed var(--color-border-dark);
+  padding-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--color-ink-faint);
+}
+
+/* Card Back: Photography Reveal */
+.cinematic-face-back {
+  background: var(--color-ink);
+  transform: rotateY(180deg);
+  border: 1px solid rgba(250, 247, 242, 0.25);
+}
+
+.cinematic-face-back img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 600ms ease;
+}
+
+.cinematic-postcard-wrap.is-focal .cinematic-face-back img {
+  transform: scale(1.06);
+}
+
+/* Gradient Vignette over Photo */
+.cinematic-face-back-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(28, 36, 33, 0.3) 0%,
+    rgba(28, 36, 33, 0.15) 30%,
+    rgba(28, 36, 33, 0.85) 75%,
+    rgba(28, 36, 33, 0.98) 100%
+  );
+  z-index: 2;
+}
+
+.cinematic-face-back-top {
+  position: relative;
+  z-index: 3;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cinematic-verified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(28, 36, 33, 0.75);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(250, 247, 242, 0.25);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: #F1C67E;
+}
+
+.cinematic-face-back-bottom {
+  position: relative;
+  z-index: 3;
+  margin-top: auto;
+  padding: 1.5rem;
+  color: var(--color-ivory);
+}
+
+.cinematic-face-back-title {
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: var(--color-ivory);
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.cinematic-face-back-country {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.85rem;
+  color: rgba(250, 247, 242, 0.8);
+  margin-bottom: 0.5rem;
+}
+
+.cinematic-face-back-desc {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgba(250, 247, 242, 0.85);
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cinematic-face-back-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background-color: var(--color-terracotta);
+  color: var(--color-ivory);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--color-terracotta);
+  transition: all var(--transition-fast);
+}
+
+.cinematic-face-back-cta:hover {
+  background-color: var(--color-terracotta-hover);
+  border-color: var(--color-terracotta-hover);
+  color: #FFFFFF;
+}
+
+/* =========================================================================
+   10. SCENE 5 — FOCAL HIGHLIGHT & DEPTH OF FIELD
+   ========================================================================= */
+.cinematic-postcard-wrap.is-focal {
+  box-shadow: 0 24px 54px rgba(28, 36, 33, 0.35);
+  filter: drop-shadow(0 0 20px rgba(241, 198, 126, 0.25));
+}
+
+.cinematic-postcard-wrap.is-dimmed {
+  filter: blur(1.5px) brightness(0.9);
+  pointer-events: auto;
+}
+
+/* =========================================================================
+   11. BOTTOM NAV BAR & TIMELINE STEPPER
+   ========================================================================= */
+.cinematic-bottom-bar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.5rem 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cinematic-timeline-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.cinematic-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-terracotta);
+  animation: roamlyDotPulse 1.6s ease-in-out infinite;
+}
+
+
+
+/* =========================================================================
+   12. REDUCED MOTION PRESENTATION
+   ========================================================================= */
+.cinematic-reduced-view {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.cinematic-reduced-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+  margin-top: 1.5rem;
+}
+
+/* =========================================================================
+   13. RESPONSIVE BREAKPOINTS
+   ========================================================================= */
+@media (max-width: 1024px) {
+  .cinematic-top-bar, .cinematic-bottom-bar {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+  .cinematic-postcard-wrap {
+    width: 280px;
+    height: 380px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cinematic-scroll-track-overlay,
+  .cinematic-scroll-track-page {
+    height: 300vh;
+  }
+  .cinematic-page-stage {
+    top: 72px;
+    height: calc(100vh - 72px);
+    height: calc(100dvh - 72px);
+  }
+  .cinematic-top-bar {
+    padding: 1rem 1rem 0;
+  }
+  .cinematic-bottom-bar {
+    padding: 0 1rem 1rem;
+  }
+  .cinematic-heading-reveal {
+    top: 4rem;
+  }
+  .cinematic-heading-reveal h2 {
+    font-size: 1.4rem;
+  }
+  .cinematic-title-scene h1 {
+    font-size: 1.85rem;
+    letter-spacing: 0.08em;
+  }
+  .cinematic-postcard-wrap {
+    width: 250px;
+    height: 340px;
+  }
+  .cinematic-face-back-title {
+    font-size: 1.25rem;
+  }
+  .cinematic-face-back-desc {
+    display: none;
+  }
+  .cinematic-reduced-grid {
+    grid-template-columns: 1fr;
+  }
+}

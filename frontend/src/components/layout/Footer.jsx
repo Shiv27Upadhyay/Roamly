@@ -27,6 +27,8 @@ export default function Footer() {
               <li><Link to="/trips">Community Itineraries</Link></li>
               <li><Link to="/trips/new">Trip Planner Studio</Link></li>
               <li><Link to="/profile">Saved Wishlist</Link></li>
+              <li><Link to="/smart-features">Smart Features (Concept)</Link></li>
+              <li><Link to="/most-loved">Most-Loved Destinations</Link></li>
             </ul>
           </div>
 

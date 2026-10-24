@@ -7,6 +7,23 @@ import TripCard from '../components/common/TripCard';
 import { GridSkeleton } from '../components/common/LoadingSkeleton';
 import ErrorBanner from '../components/common/ErrorBanner';
 import heroImage from '../assets/hero.png';
+import CinematicDestinationExperience from '../components/home/CinematicDestinationExperience';
+
+const CINEMATIC_INTRO_KEY = 'roamly_cinematic_intro_seen';
+
+function shouldShowCinematicIntro() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (sessionStorage.getItem(CINEMATIC_INTRO_KEY)) return false;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      sessionStorage.setItem(CINEMATIC_INTRO_KEY, 'true');
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default function HomePage() {
   const [destinations, setDestinations] = useState([]);
@@ -17,7 +34,44 @@ export default function HomePage() {
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [isHeroPaused, setIsHeroPaused] = useState(false);
   const [isHeroFading, setIsHeroFading] = useState(false);
+  const [showCinematicIntro, setShowCinematicIntro] = useState(() => shouldShowCinematicIntro());
+  const [isIntroReady, setIsIntroReady] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean(sessionStorage.getItem('roamly_initial_flight_seen'));
+  });
   const navigate = useNavigate();
+
+  // Listen for initial loader completion to seamlessly take over the stage
+  useEffect(() => {
+    if (!showCinematicIntro || isIntroReady) return;
+
+    const handleLoaderDismissed = () => {
+      setIsIntroReady(true);
+    };
+
+    window.addEventListener('roamly:initial-loader-dismissed', handleLoaderDismissed);
+
+    const fallbackTimer = setTimeout(() => {
+      setIsIntroReady(true);
+    }, 1300);
+
+    return () => {
+      window.removeEventListener('roamly:initial-loader-dismissed', handleLoaderDismissed);
+      clearTimeout(fallbackTimer);
+    };
+  }, [showCinematicIntro, isIntroReady]);
+
+  const handleDismissIntro = () => {
+    try {
+      sessionStorage.setItem(CINEMATIC_INTRO_KEY, 'true');
+    } catch {
+      // ignore private mode error
+    }
+    setShowCinematicIntro(false);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -112,8 +166,37 @@ export default function HomePage() {
   };
 
   return (
-    <div>
-      {/* Editorial Hero Section */}
+    <div style={{ position: 'relative' }}>
+      {/* First-Visit Cinematic Overlay (Reveals homepage softly blurred behind it) */}
+      {showCinematicIntro && isIntroReady && (
+        <CinematicDestinationExperience
+          mode="overlay"
+          destinations={destinations}
+          trips={trips}
+          loading={loading}
+          onDismiss={handleDismissIntro}
+        />
+      )}
+
+      {/* Subdued / Softly Faded Background Wrapper during Cinematic Opening */}
+      <div
+        style={{
+          position: (showCinematicIntro && isIntroReady) ? 'fixed' : 'relative',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: (showCinematicIntro && isIntroReady) ? '100vh' : 'auto',
+          overflow: (showCinematicIntro && isIntroReady) ? 'hidden' : 'visible',
+          zIndex: (showCinematicIntro && isIntroReady) ? 1 : 'auto',
+          filter: (showCinematicIntro && isIntroReady) ? 'blur(10px) brightness(0.92)' : 'none',
+          opacity: (showCinematicIntro && isIntroReady) ? 0.65 : 1,
+          pointerEvents: (showCinematicIntro && isIntroReady) ? 'none' : 'auto',
+          transition: 'filter 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+      >
+        {/* Editorial Hero Section */}
       <section style={{
         backgroundColor: 'var(--color-sand)',
         paddingTop: 'var(--space-16)',
@@ -251,43 +334,6 @@ export default function HomePage() {
               }}>
                 {currentFeatured ? (currentFeatured.tagline || currentFeatured.description) : 'Autumn temples & kaiseki dinners'}
               </div>
-
-              {/* Accessible rotation indicators */}
-              {destinations.length > 1 && (
-                <div
-                  style={{ display: 'flex', gap: '5px', alignItems: 'center', marginTop: '10px' }}
-                  role="tablist"
-                  aria-label="Featured destinations"
-                >
-                  {destinations.map((d, idx) => {
-                    const isSelected = idx === (featuredIndex % destinations.length);
-                    return (
-                      <button
-                        key={d.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={isSelected}
-                        aria-label={`Featured destination: ${d.title}, ${d.country}`}
-                        onClick={() => {
-                          setFeaturedIndex(idx);
-                        }}
-                        onFocus={() => setIsHeroPaused(true)}
-                        onBlur={() => setIsHeroPaused(false)}
-                        style={{
-                          width: isSelected ? '18px' : '6px',
-                          height: '6px',
-                          borderRadius: 'var(--radius-pill)',
-                          backgroundColor: isSelected ? 'var(--color-terracotta)' : 'var(--color-border-dark)',
-                          border: 'none',
-                          padding: 0,
-                          cursor: 'pointer',
-                          transition: 'all 200ms ease'
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -298,7 +344,7 @@ export default function HomePage() {
         <ErrorBanner message={error} onRetry={fetchData} />
 
         {/* 1. Curated Destinations Section */}
-        <section style={{ marginBottom: 'var(--space-20)' }}>
+        <section id="curated-catalog" style={{ marginBottom: 'var(--space-20)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 'var(--space-8)' }}>
             <div>
               <span className="eyebrow" style={{ color: 'var(--color-terracotta)', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '6px' }}>
@@ -419,5 +465,6 @@ export default function HomePage() {
         </section>
       </div>
     </div>
+  </div>
   );
 }

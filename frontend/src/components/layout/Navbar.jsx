@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Compass, Menu, X, PlusCircle, User, LogIn, LogOut } from 'lucide-react';
+import { Compass, Menu, X, PlusCircle, User, LogIn, LogOut, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
@@ -66,6 +66,21 @@ export default function Navbar() {
                 Profile &amp; Wishlist
               </NavLink>
             </li>
+            <li>
+              <NavLink to="/trips/join" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                Join Trip
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/smart-features" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                Smart Features
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/most-loved" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                Most-Loved
+              </NavLink>
+            </li>
           </ul>
         </nav>
 
@@ -108,6 +123,16 @@ export default function Navbar() {
                   >
                     <User size={16} color="var(--color-terracotta)" />
                     <span>My Profile &amp; Wishlist</span>
+                  </Link>
+
+                  <Link
+                    to="/trips/join"
+                    className="nav-dropdown-item"
+                    onClick={() => setDropdownOpen(false)}
+                    role="menuitem"
+                  >
+                    <Users size={16} color="var(--color-terracotta)" />
+                    <span>Join with Code</span>
                   </Link>
 
                   <Link
@@ -213,6 +238,27 @@ export default function Navbar() {
             onClick={closeMenu}
           >
             My Profile &amp; Wishlist
+          </NavLink>
+          <NavLink
+            to="/trips/join"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={closeMenu}
+          >
+            Join with Code
+          </NavLink>
+          <NavLink
+            to="/smart-features"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={closeMenu}
+          >
+            Smart Features
+          </NavLink>
+          <NavLink
+            to="/most-loved"
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            onClick={closeMenu}
+          >
+            Most-Loved Destinations
           </NavLink>
 
           <Link

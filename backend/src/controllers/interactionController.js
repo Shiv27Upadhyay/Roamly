@@ -62,7 +62,7 @@ function getUserBookmarks(req, res, next) {
     const userId = req.user.id;
 
     const bookmarkedDestinations = db.prepare(`
-      SELECT 
+      SELECT
         d.id,
         d.title,
         d.country,
@@ -118,7 +118,18 @@ function toggleTripLike(req, res, next) {
     const isOwner = Boolean(trip.user_id === userId);
     const providedToken = req.query.token || req.headers['x-share-token'] || (req.body && req.body.token) || null;
 
-    if (trip.visibility === 'private' && !isOwner) {
+    let isGroupMember = false;
+    if (!isOwner) {
+      const membership = db.prepare(`
+        SELECT 1
+        FROM trip_group_members tgm
+        JOIN trip_groups tg ON tg.id = tgm.group_id
+        WHERE tg.trip_id = ? AND tgm.user_id = ?
+      `).get(tripId, userId);
+      isGroupMember = Boolean(membership);
+    }
+
+    if (trip.visibility === 'private' && !isOwner && !isGroupMember) {
       return res.status(404).json({
         success: false,
         error: `Trip with ID ${tripId} not found.`
@@ -127,7 +138,7 @@ function toggleTripLike(req, res, next) {
 
     if (trip.visibility === 'unlisted') {
       const hasValidToken = trip.share_token && isValidShareToken(providedToken, trip.share_token);
-      if (!isOwner && !hasValidToken) {
+      if (!isOwner && !isGroupMember && !hasValidToken) {
         return res.status(404).json({
           success: false,
           error: `Trip with ID ${tripId} not found.`
@@ -184,7 +195,18 @@ function addTripComment(req, res, next) {
     const isOwner = Boolean(trip.user_id === userId);
     const providedToken = req.query.token || req.headers['x-share-token'] || (req.body && req.body.token) || null;
 
-    if (trip.visibility === 'private' && !isOwner) {
+    let isGroupMember = false;
+    if (!isOwner) {
+      const membership = db.prepare(`
+        SELECT 1
+        FROM trip_group_members tgm
+        JOIN trip_groups tg ON tg.id = tgm.group_id
+        WHERE tg.trip_id = ? AND tgm.user_id = ?
+      `).get(tripId, userId);
+      isGroupMember = Boolean(membership);
+    }
+
+    if (trip.visibility === 'private' && !isOwner && !isGroupMember) {
       return res.status(404).json({
         success: false,
         error: `Trip with ID ${tripId} not found.`
@@ -193,7 +215,7 @@ function addTripComment(req, res, next) {
 
     if (trip.visibility === 'unlisted') {
       const hasValidToken = trip.share_token && isValidShareToken(providedToken, trip.share_token);
-      if (!isOwner && !hasValidToken) {
+      if (!isOwner && !isGroupMember && !hasValidToken) {
         return res.status(404).json({
           success: false,
           error: `Trip with ID ${tripId} not found.`
@@ -209,7 +231,7 @@ function addTripComment(req, res, next) {
     const commentId = Number(result.lastInsertRowid);
 
     const createdComment = db.prepare(`
-      SELECT 
+      SELECT
         c.id,
         c.trip_id,
         c.user_id,

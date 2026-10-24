@@ -1,6 +1,6 @@
 # Roamly Backend API
 
-> Polished RESTful backend for **Roamly** travel discovery and collaborative trip-planning.  
+> Polished RESTful backend for **Roamly** travel discovery and collaborative trip-planning.
 > Built with Node.js, Express, and native SQLite (`node:sqlite`).
 
 ---
@@ -167,3 +167,34 @@ Without an active authentication provider, requests resolve user identity via:
 | `DELETE` | `/api/comments/:id` | Delete a comment | **Author Only** (403 if mismatched) |
 | `GET` | `/api/profile` | Get active user profile, stats, created trips, and bookmarks | Yes (`x-user-id`) |
 | `GET` | `/api/profile/:id` | Get profile for specific user ID | No |
+| `GET` | `/api/trips/:id/media` | List photos & videos for a trip (respects privacy/groups) | Contextual |
+| `POST` | `/api/trips/:id/media/signature` | Request signed upload credentials for Cloudinary | **Owner or Companion** |
+| `POST` | `/api/trips/:id/media` | Register uploaded Cloudinary media metadata | **Owner or Companion** |
+| `DELETE` | `/api/trips/:id/media/:mediaId` | Delete media asset from Cloudinary and SQLite | **Uploader or Owner** |
+
+---
+
+## 7. Media & Cloudinary Storage
+
+Roamly uses a **Direct Signed Upload Architecture** with Cloudinary for photo and video storage:
+- Large media files are transferred directly from the browser to Cloudinary CDN, bypassing Express memory/bandwidth.
+- Signatures are generated server-side with HMAC-SHA256 (`CLOUDINARY_API_SECRET` remains strictly confidential on the server).
+- Metadata (URL, format, dimensions, duration, caption, uploader) is persisted in SQLite `trip_media`.
+- Photos are capped at **10 MB** (JPEG, PNG, WebP, HEIC).
+- Videos are capped at **100 MB** and **180 seconds** (MP4, MOV, WebM).
+- For private and unlisted itineraries, URLs are generated with dynamic cryptographic signatures or high-entropy folder namespaces to prevent asset enumeration.
+- Member removal from a group immediately revokes media upload and viewing access.
+
+### Environment Setup
+Add to `backend/.env`:
+```env
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+### Media Test Suite
+Run the isolated automated media test suite:
+```bash
+npm run test:media
+```

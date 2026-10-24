@@ -148,9 +148,159 @@ export const api = {
   deleteComment: (commentId) =>
     request(`/comments/${commentId}`, { method: 'DELETE' }),
 
+  // Group Trips & Companions
+  getTripGroup: (tripId) => request(`/trips/${tripId}/group`),
+
+  createTripGroup: (tripId, name = null) =>
+    request(`/trips/${tripId}/group`, {
+      method: 'POST',
+      body: name ? { name } : {}
+    }),
+
+  getTripGroupQr: (tripId, format) =>
+    request(format ? `/trips/${tripId}/group/qr?format=${format}` : `/trips/${tripId}/group/qr`),
+
+  rotateGroupInvite: (tripId) =>
+    request(`/trips/${tripId}/group/invite/rotate`, {
+      method: 'POST'
+    }),
+
+  updateGroupInviteStatus: (tripId, status) =>
+    request(`/trips/${tripId}/group/invite/status`, {
+      method: 'PATCH',
+      body: { status }
+    }),
+
+  getGroupInvitationPreview: (params = {}) => {
+    const searchParams = new URLSearchParams();
+    if (params.code) searchParams.append('code', params.code);
+    if (params.token) searchParams.append('token', params.token);
+    return request(`/groups/preview?${searchParams.toString()}`);
+  },
+
+  joinGroup: (joinData) =>
+    request('/groups/join', {
+      method: 'POST',
+      body: joinData
+    }),
+
+  removeGroupMember: (tripId, userId) =>
+    request(`/trips/${tripId}/group/members/${userId}`, {
+      method: 'DELETE'
+    }),
+
+  // Trip Media (Photos & Videos)
+  getTripMedia: (tripId, options = {}) => {
+    const searchParams = new URLSearchParams();
+    if (options.type) searchParams.append('type', options.type);
+    if (options.token) searchParams.append('token', options.token);
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+
+    const headers = {};
+    if (options.token) {
+      headers['x-share-token'] = options.token;
+    }
+
+    return request(`/trips/${tripId}/media${query}`, { headers });
+  },
+
+  getMediaUploadSignature: (tripId, mediaType) => {
+    const resolvedType = typeof mediaType === 'string'
+      ? mediaType
+      : (mediaType?.media_type || mediaType?.mediaType || (mediaType?.resourceType === 'video' ? 'video' : 'photo'));
+    return request(`/trips/${tripId}/media/signature`, {
+      method: 'POST',
+      body: { media_type: resolvedType }
+    });
+  },
+
+  registerTripMedia: (tripId, mediaData) => {
+    const payload = {
+      media_type: mediaData.media_type || mediaData.mediaType,
+      public_id: mediaData.public_id || mediaData.publicId,
+      secure_url: mediaData.secure_url || mediaData.secureUrl,
+      format: mediaData.format,
+      bytes: mediaData.bytes,
+      width: mediaData.width,
+      height: mediaData.height,
+      duration: mediaData.duration,
+      caption: mediaData.caption
+    };
+    return request(`/trips/${tripId}/media`, {
+      method: 'POST',
+      body: payload
+    });
+  },
+
+  deleteTripMedia: (tripId, mediaId) =>
+    request(`/trips/${tripId}/media/${mediaId}`, {
+      method: 'DELETE'
+    }),
+
   // Profile
   getProfile: (userId = null) => {
     const endpoint = userId ? `/profile/${userId}` : '/profile';
     return request(endpoint);
   }
 };
+
+/**
+ * Direct client-to-Cloudinary signed file uploader.
+ * Uses native XMLHttpRequest to deliver real byte-level progress events.
+ */
+export function uploadFileToCloudinary(file, signatureData, optionsOrProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const url = `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/${signatureData.resourceType}/upload`;
+
+    xhr.open('POST', url);
+
+    const progressCallback = typeof optionsOrProgress === 'function'
+      ? optionsOrProgress
+      : optionsOrProgress?.onProgress;
+
+    if (xhr.upload && typeof progressCallback === 'function') {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          progressCallback(percent, e.loaded, e.total);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const res = JSON.parse(xhr.responseText);
+          resolve(res);
+        } catch {
+          reject(new Error('Invalid JSON response received from media storage.'));
+        }
+      } else {
+        try {
+          const errRes = JSON.parse(xhr.responseText);
+          reject(new Error(errRes.error?.message || `Upload failed with status ${xhr.status}`));
+        } catch {
+          reject(new Error(`Media upload failed with status ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error during media upload. Please check your internet connection.'));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error('Upload was cancelled.'));
+    };
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('api_key', signatureData.apiKey);
+    formData.append('timestamp', String(signatureData.timestamp));
+    formData.append('signature', signatureData.signature);
+    formData.append('folder', signatureData.folder);
+
+    xhr.send(formData);
+  });
+}
