@@ -5,7 +5,7 @@
 
 const { getDb } = require('../config/db');
 
-function getUserProfile(req, res, next) {
+async function getUserProfile(req, res, next) {
   try {
     const db = getDb();
     // Support target user via /api/profile or /api/profile/:id (defaults to current user)
@@ -18,7 +18,7 @@ function getUserProfile(req, res, next) {
       });
     }
 
-    const user = db.prepare(`
+    const user = await db.prepare(`
       SELECT id, name, username, email, avatar_url, bio, home_city, created_at
       FROM users
       WHERE id = ?
@@ -59,10 +59,10 @@ function getUserProfile(req, res, next) {
       WHERE t.user_id = ? ${isOwner ? '' : "AND t.visibility = 'public'"}
       ORDER BY t.created_at DESC
     `;
-    const trips = db.prepare(tripsQuery).all(targetUserId);
+    const trips = await db.prepare(tripsQuery).all(targetUserId);
 
     // User's saved destinations
-    const savedDestinations = db.prepare(`
+    const savedDestinations = await db.prepare(`
       SELECT 
         d.id,
         d.title,
@@ -93,13 +93,15 @@ function getUserProfile(req, res, next) {
       JOIN trips t ON t.id = tl.trip_id
       WHERE t.user_id = ? ${isOwner ? '' : "AND t.visibility = 'public'"}
     `;
-    const likesReceived = db.prepare(likesReceivedQuery).get(targetUserId).count;
+    const likesReceivedRes = await db.prepare(likesReceivedQuery).get(targetUserId);
+    const likesReceived = parseInt(likesReceivedRes?.count || 0, 10);
 
-    const commentsPosted = db.prepare(`
+    const commentsPostedRes = await db.prepare(`
       SELECT COUNT(*) as count
       FROM comments
       WHERE user_id = ?
-    `).get(targetUserId).count;
+    `).get(targetUserId);
+    const commentsPosted = parseInt(commentsPostedRes?.count || 0, 10);
 
     res.status(200).json({
       success: true,

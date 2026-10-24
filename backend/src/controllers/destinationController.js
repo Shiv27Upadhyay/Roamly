@@ -5,7 +5,7 @@
 
 const { getDb } = require('../config/db');
 
-function getAllDestinations(req, res, next) {
+async function getAllDestinations(req, res, next) {
   try {
     const db = getDb();
     const userId = req.user ? req.user.id : null;
@@ -49,7 +49,7 @@ function getAllDestinations(req, res, next) {
 
     query += ` ORDER BY d.id ASC`;
 
-    const destinations = db.prepare(query).all(...params);
+    const destinations = await db.prepare(query).all(...params);
 
     // Convert is_bookmarked from 0/1 to boolean
     const formatted = destinations.map(d => ({
@@ -68,13 +68,13 @@ function getAllDestinations(req, res, next) {
   }
 }
 
-function getDestinationById(req, res, next) {
+async function getDestinationById(req, res, next) {
   try {
     const db = getDb();
     const userId = req.user ? req.user.id : null;
     const { id } = req.params;
 
-    const dest = db.prepare(`
+    const dest = await db.prepare(`
       SELECT 
         d.id,
         d.title,
@@ -101,7 +101,7 @@ function getDestinationById(req, res, next) {
     }
 
     // Fetch associated itineraries / trips for this destination
-    const trips = db.prepare(`
+    const trips = await db.prepare(`
       SELECT 
         t.id,
         t.title,

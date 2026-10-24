@@ -19,12 +19,12 @@ const {
  * Helper to check trip visibility access for media viewing.
  * Uniformly returns 404 for unauthorized private/unlisted access to prevent leakage.
  */
-function checkTripMediaAccess(trip, currentUserId, providedToken, db) {
+async function checkTripMediaAccess(trip, currentUserId, providedToken, db) {
   const isOwner = Boolean(currentUserId && trip.user_id === currentUserId);
   let isGroupMember = false;
 
   if (currentUserId && !isOwner) {
-    const membership = db.prepare(`
+    const membership = await db.prepare(`
       SELECT tgm.role
       FROM trip_group_members tgm
       JOIN trip_groups tg ON tg.id = tgm.group_id
@@ -51,11 +51,11 @@ function checkTripMediaAccess(trip, currentUserId, providedToken, db) {
  * Helper to check if a user is authorized to upload media to a trip.
  * Authorized users: Trip Owner OR Active Group Member.
  */
-function checkTripUploadPermission(trip, currentUserId, db) {
+async function checkTripUploadPermission(trip, currentUserId, db) {
   if (!currentUserId) return false;
   if (trip.user_id === currentUserId) return true; // Owner
 
-  const membership = db.prepare(`
+  const membership = await db.prepare(`
     SELECT tgm.role
     FROM trip_group_members tgm
     JOIN trip_groups tg ON tg.id = tgm.group_id
@@ -88,7 +88,7 @@ async function getTripMedia(req, res, next) {
     const typeFilter = req.query.type; // 'photo' | 'video'
 
     // 1. Fetch trip
-    const trip = db.prepare(`
+    const trip = await db.prepare(`
       SELECT id, user_id, title, visibility, share_token, created_at
       FROM trips
       WHERE id = ?
@@ -102,7 +102,7 @@ async function getTripMedia(req, res, next) {
     }
 
     // 2. Access control verification
-    const { allowed, isOwner } = checkTripMediaAccess(trip, currentUserId, providedToken, db);
+    const { allowed, isOwner } = await checkTripMediaAccess(trip, currentUserId, providedToken, db);
     if (!allowed) {
       // Uniform 404 to avoid disclosing existence of private or unauthorized trip
       return res.status(404).json({
@@ -144,7 +144,7 @@ async function getTripMedia(req, res, next) {
 
     query += ` ORDER BY tm.created_at DESC, tm.id DESC`;
 
-    const rawItems = db.prepare(query).all(...params);
+    const rawItems = await db.prepare(query).all(...params);
 
     // 4. Transform items with permissions and signed delivery URLs
     const isPrivateOrUnlisted = trip.visibility === 'private' || trip.visibility === 'unlisted';
@@ -231,7 +231,7 @@ async function getUploadSignature(req, res, next) {
     }
 
     // 2. Fetch trip
-    const trip = db.prepare(`
+    const trip = await db.prepare(`
       SELECT id, user_id, visibility, share_token, created_at
       FROM trips
       WHERE id = ?
@@ -245,7 +245,7 @@ async function getUploadSignature(req, res, next) {
     }
 
     // 3. Authorization check
-    const isAuthorized = checkTripUploadPermission(trip, currentUserId, db);
+    const isAuthorized = await checkTripUploadPermission(trip, currentUserId, db);
     if (!isAuthorized) {
       return res.status(403).json({
         success: false,
@@ -293,7 +293,7 @@ async function registerMedia(req, res, next) {
     } = req.body;
 
     // 1. Fetch trip
-    const trip = db.prepare(`
+    const trip = await db.prepare(`
       SELECT id, user_id, visibility, share_token, created_at
       FROM trips
       WHERE id = ?
@@ -307,7 +307,7 @@ async function registerMedia(req, res, next) {
     }
 
     // 2. Authorization check
-    const isAuthorized = checkTripUploadPermission(trip, currentUserId, db);
+    const isAuthorized = await checkTripUploadPermission(trip, currentUserId, db);
     if (!isAuthorized) {
       return res.status(403).json({
         success: false,
@@ -403,7 +403,7 @@ async function registerMedia(req, res, next) {
     }
 
     // Duplicate registration check
-    const existingMedia = db.prepare('SELECT id FROM trip_media WHERE public_id = ?').get(public_id);
+    const existingMedia = await db.prepare('SELECT id FROM trip_media WHERE public_id = ?').get(public_id);
     if (existingMedia) {
       return res.status(400).json({
         success: false,
@@ -416,7 +416,7 @@ async function registerMedia(req, res, next) {
       resourceType: limits.resourceType
     });
 
-    // 5. Insert into SQLite
+    // 5. Insert into SQLite / Postgres
     const insertStmt = db.prepare(`
       INSERT INTO trip_media (
         trip_id,
@@ -434,7 +434,7 @@ async function registerMedia(req, res, next) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = insertStmt.run(
+    const result = await insertStmt.run(
       trip.id,
       currentUserId,
       media_type,
@@ -449,7 +449,7 @@ async function registerMedia(req, res, next) {
       cleanCaption
     );
 
-    const createdRecord = db.prepare(`
+    const createdRecord = await db.prepare(`
       SELECT
         tm.*,
         u.name AS uploader_name,
@@ -492,7 +492,7 @@ async function deleteMedia(req, res, next) {
     const currentUserId = req.user.id;
 
     // 1. Fetch trip
-    const trip = db.prepare('SELECT id, user_id FROM trips WHERE id = ?').get(tripId);
+    const trip = await db.prepare('SELECT id, user_id FROM trips WHERE id = ?').get(tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -501,7 +501,7 @@ async function deleteMedia(req, res, next) {
     }
 
     // 2. Fetch media record
-    const media = db.prepare(`
+    const media = await db.prepare(`
       SELECT id, trip_id, user_id, media_type, public_id
       FROM trip_media
       WHERE id = ? AND trip_id = ?
@@ -536,8 +536,8 @@ async function deleteMedia(req, res, next) {
       // We proceed with database record deletion to avoid broken media links
     }
 
-    // 5. Delete metadata record from SQLite
-    db.prepare('DELETE FROM trip_media WHERE id = ?').run(mediaId);
+    // 5. Delete metadata record from SQLite / Postgres
+    await db.prepare('DELETE FROM trip_media WHERE id = ?').run(mediaId);
 
     return res.status(200).json({
       success: true,

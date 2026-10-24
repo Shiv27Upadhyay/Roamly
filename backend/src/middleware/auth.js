@@ -37,10 +37,11 @@ function signSessionToken(user) {
  * Sets the HttpOnly session cookie on the response.
  */
 function setSessionCookie(res, token) {
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
@@ -50,10 +51,11 @@ function setSessionCookie(res, token) {
  * Clears the session cookie.
  */
 function clearSessionCookie(res) {
+  const isProd = process.env.NODE_ENV === 'production';
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
     path: '/'
   });
 }
@@ -78,7 +80,7 @@ function extractToken(req) {
  * If no session or invalid, leaves req.user = null and passes through.
  * Strictly ignores spoofed x-user-id and user_id params.
  */
-function optionalAuth(req, res, next) {
+async function optionalAuth(req, res, next) {
   try {
     const token = extractToken(req);
     if (!token) {
@@ -101,7 +103,7 @@ function optionalAuth(req, res, next) {
     }
 
     const db = getDb();
-    const user = db.prepare(`
+    const user = await db.prepare(`
       SELECT id, name, username, email, avatar_url, bio, home_city, google_id, created_at
       FROM users
       WHERE id = ?

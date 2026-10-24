@@ -3,11 +3,32 @@
  * Tests all endpoints, validation, error handling, ownership rules, interactions, and DB persistence.
  */
 
+const path = require('path');
+const fs = require('fs');
+
 process.env.NODE_ENV = 'test';
 process.env.PORT = '5099';
+process.env.JWT_SECRET = 'test_super_secret_jwt_key_for_isolated_test_suite_32chars';
+const TEST_DB_PATH = path.resolve(__dirname, '../data/test_api_isolated.db');
+process.env.DB_PATH = TEST_DB_PATH;
+
+function cleanTestDb() {
+  if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH);
+  if (fs.existsSync(TEST_DB_PATH + '-wal')) fs.unlinkSync(TEST_DB_PATH + '-wal');
+  if (fs.existsSync(TEST_DB_PATH + '-shm')) fs.unlinkSync(TEST_DB_PATH + '-shm');
+}
+cleanTestDb();
 
 const { app } = require('../src/server');
 const { getDb, closeDb } = require('../src/config/db');
+const { signSessionToken } = require('../src/middleware/auth');
+
+const defaultToken = signSessionToken({
+  id: 1,
+  name: 'Elena Rostova',
+  username: 'elena',
+  email: 'elena@roamly.local'
+});
 
 const TEST_PORT = 5099;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}/api`;
@@ -38,6 +59,7 @@ async function request(path, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     'Connection': 'close',
+    'Authorization': `Bearer ${defaultToken}`,
     ...(options.headers || {})
   };
 
@@ -357,9 +379,10 @@ async function runTestSuite() {
     );
 
     // Comment ownership check: User 2 cannot delete User 1's comment
+    const marcusToken = signSessionToken({ id: 2, name: 'Marcus Chen', username: 'marcus', email: 'marcus@roamly.local' });
     const unauthorizedCommentDel = await request(`/comments/${createdCommentId}`, {
       method: 'DELETE',
-      headers: { 'x-user-id': '2' }
+      headers: { 'Authorization': `Bearer ${marcusToken}` }
     });
     recordTest(
       'DELETE /api/comments/:id rejects non-author with 403 Forbidden',
@@ -483,6 +506,7 @@ async function runTestSuite() {
       await stopServer(serverInstance);
     }
     closeDb();
+    cleanTestDb();
   }
 
   // Print Summary Table

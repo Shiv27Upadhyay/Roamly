@@ -19,29 +19,29 @@ const {
 /**
  * Helper to fetch trip and verify existence.
  */
-function getTrip(db, tripId) {
-  return db.prepare('SELECT id, user_id, title, visibility, share_token FROM trips WHERE id = ?').get(tripId);
+async function getTrip(db, tripId) {
+  return await db.prepare('SELECT id, user_id, title, visibility, share_token FROM trips WHERE id = ?').get(tripId);
 }
 
 /**
  * Helper to fetch group by tripId.
  */
-function getGroupByTripId(db, tripId) {
-  return db.prepare('SELECT * FROM trip_groups WHERE trip_id = ?').get(tripId);
+async function getGroupByTripId(db, tripId) {
+  return await db.prepare('SELECT * FROM trip_groups WHERE trip_id = ?').get(tripId);
 }
 
 /**
  * POST /api/trips/:id/group
  * Authenticated trip owner creates a group workspace for a trip.
  */
-function createTripGroup(req, res, next) {
+async function createTripGroup(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const tripId = req.params.id;
     const { name } = req.body || {};
 
-    const trip = getTrip(db, tripId);
+    const trip = await getTrip(db, tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -56,7 +56,7 @@ function createTripGroup(req, res, next) {
       });
     }
 
-    const existingGroup = getGroupByTripId(db, tripId);
+    const existingGroup = await getGroupByTripId(db, tripId);
     if (existingGroup) {
       return res.status(400).json({
         success: false,
@@ -65,18 +65,18 @@ function createTripGroup(req, res, next) {
     }
 
     const groupName = (name && name.trim()) ? name.trim() : `${trip.title} Travelers`;
-    const inviteCode = generateUniqueInviteCode(db);
-    const inviteToken = generateUniqueInviteToken(db);
+    const inviteCode = await generateUniqueInviteCode(db);
+    const inviteToken = await generateUniqueInviteToken(db);
 
-    const result = withTransaction((trxDb) => {
-      trxDb.prepare(`
+    const result = await withTransaction(async (trxDb) => {
+      await trxDb.prepare(`
         INSERT INTO trip_groups (trip_id, created_by, name, invite_code, invite_token, invite_status)
         VALUES (?, ?, ?, ?, ?, 'active')
       `).run(tripId, currentUserId, groupName, inviteCode, inviteToken);
 
-      const created = trxDb.prepare('SELECT * FROM trip_groups WHERE trip_id = ?').get(tripId);
+      const created = await trxDb.prepare('SELECT * FROM trip_groups WHERE trip_id = ?').get(tripId);
 
-      trxDb.prepare(`
+      await trxDb.prepare(`
         INSERT INTO trip_group_members (group_id, user_id, role, joined_via)
         VALUES (?, ?, 'owner', 'owner')
       `).run(created.id, currentUserId);
@@ -84,7 +84,7 @@ function createTripGroup(req, res, next) {
       return created;
     });
 
-    const members = db.prepare(`
+    const members = await db.prepare(`
       SELECT
         tgm.id,
         tgm.group_id,
@@ -127,13 +127,13 @@ function createTripGroup(req, res, next) {
  * GET /api/trips/:id/group
  * Authorized group members or trip owner retrieve group details and roster.
  */
-function getTripGroup(req, res, next) {
+async function getTripGroup(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const tripId = req.params.id;
 
-    const trip = getTrip(db, tripId);
+    const trip = await getTrip(db, tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -141,7 +141,7 @@ function getTripGroup(req, res, next) {
       });
     }
 
-    const group = getGroupByTripId(db, tripId);
+    const group = await getGroupByTripId(db, tripId);
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -150,7 +150,7 @@ function getTripGroup(req, res, next) {
     }
 
     const isOwner = trip.user_id === currentUserId;
-    const membership = db.prepare(`
+    const membership = await db.prepare(`
       SELECT role FROM trip_group_members WHERE group_id = ? AND user_id = ?
     `).get(group.id, currentUserId);
 
@@ -168,7 +168,7 @@ function getTripGroup(req, res, next) {
       });
     }
 
-    const members = db.prepare(`
+    const members = await db.prepare(`
       SELECT
         tgm.id,
         tgm.group_id,
@@ -219,13 +219,13 @@ function getTripGroup(req, res, next) {
  * POST /api/trips/:id/group/invite/rotate
  * Owner rotates both invite code and invite token atomically.
  */
-function rotateGroupInvite(req, res, next) {
+async function rotateGroupInvite(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const tripId = req.params.id;
 
-    const trip = getTrip(db, tripId);
+    const trip = await getTrip(db, tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -233,7 +233,7 @@ function rotateGroupInvite(req, res, next) {
       });
     }
 
-    const group = getGroupByTripId(db, tripId);
+    const group = await getGroupByTripId(db, tripId);
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -248,12 +248,12 @@ function rotateGroupInvite(req, res, next) {
       });
     }
 
-    const newCode = generateUniqueInviteCode(db);
-    const newToken = generateUniqueInviteToken(db);
+    const newCode = await generateUniqueInviteCode(db);
+    const newToken = await generateUniqueInviteToken(db);
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE trip_groups
-      SET invite_code = ?, invite_token = ?, invite_status = 'active', updated_at = datetime('now')
+      SET invite_code = ?, invite_token = ?, invite_status = 'active', updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(newCode, newToken, group.id);
 
@@ -277,7 +277,7 @@ function rotateGroupInvite(req, res, next) {
  * PATCH /api/trips/:id/group/invite/status
  * Owner revokes or reactivates invitations.
  */
-function updateGroupInviteStatus(req, res, next) {
+async function updateGroupInviteStatus(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
@@ -291,7 +291,7 @@ function updateGroupInviteStatus(req, res, next) {
       });
     }
 
-    const trip = getTrip(db, tripId);
+    const trip = await getTrip(db, tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -299,7 +299,7 @@ function updateGroupInviteStatus(req, res, next) {
       });
     }
 
-    const group = getGroupByTripId(db, tripId);
+    const group = await getGroupByTripId(db, tripId);
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -314,9 +314,9 @@ function updateGroupInviteStatus(req, res, next) {
       });
     }
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE trip_groups
-      SET invite_status = ?, updated_at = datetime('now')
+      SET invite_status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `).run(status, group.id);
 
@@ -338,7 +338,7 @@ function updateGroupInviteStatus(req, res, next) {
  * POST /api/groups/join
  * Authenticated user joins a group trip via invite code or token.
  */
-function joinGroup(req, res, next) {
+async function joinGroup(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
@@ -356,7 +356,7 @@ function joinGroup(req, res, next) {
 
     if (code && code.trim()) {
       const normalizedCode = normalizeInviteCode(code);
-      group = db.prepare(`
+      group = await db.prepare(`
         SELECT tg.*, t.title AS trip_title, t.visibility AS trip_visibility, t.user_id AS trip_owner_id
         FROM trip_groups tg
         JOIN trips t ON t.id = tg.trip_id
@@ -364,7 +364,7 @@ function joinGroup(req, res, next) {
       `).get(normalizedCode);
       joinedViaMethod = 'invite_code';
     } else if (token && token.trim()) {
-      group = db.prepare(`
+      group = await db.prepare(`
         SELECT tg.*, t.title AS trip_title, t.visibility AS trip_visibility, t.user_id AS trip_owner_id
         FROM trip_groups tg
         JOIN trips t ON t.id = tg.trip_id
@@ -393,7 +393,7 @@ function joinGroup(req, res, next) {
     if (req.rateLimitKey) resetFailedAttempts(req.rateLimitKey);
 
     // Check if user is already a member
-    const existingMembership = db.prepare(`
+    const existingMembership = await db.prepare(`
       SELECT id, role, joined_via, joined_at
       FROM trip_group_members
       WHERE group_id = ? AND user_id = ?
@@ -414,7 +414,7 @@ function joinGroup(req, res, next) {
     }
 
     // Insert new membership with role 'member'
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO trip_group_members (group_id, user_id, role, joined_via)
       VALUES (?, ?, 'member', ?)
     `).run(group.id, currentUserId, joinedViaMethod);
@@ -439,14 +439,14 @@ function joinGroup(req, res, next) {
  * DELETE /api/trips/:id/group/members/:userId
  * Owner removes a member, or a member leaves voluntarily.
  */
-function removeGroupMember(req, res, next) {
+async function removeGroupMember(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const tripId = req.params.id;
     const targetUserId = req.params.userId;
 
-    const trip = getTrip(db, tripId);
+    const trip = await getTrip(db, tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -454,7 +454,7 @@ function removeGroupMember(req, res, next) {
       });
     }
 
-    const group = getGroupByTripId(db, tripId);
+    const group = await getGroupByTripId(db, tripId);
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -462,7 +462,7 @@ function removeGroupMember(req, res, next) {
       });
     }
 
-    const member = db.prepare(`
+    const member = await db.prepare(`
       SELECT id, user_id, role FROM trip_group_members WHERE group_id = ? AND user_id = ?
     `).get(group.id, targetUserId);
 
@@ -492,7 +492,7 @@ function removeGroupMember(req, res, next) {
       });
     }
 
-    db.prepare('DELETE FROM trip_group_members WHERE id = ?').run(member.id);
+    await db.prepare('DELETE FROM trip_group_members WHERE id = ?').run(member.id);
 
     const message = isSelf ? 'You have left the group trip.' : 'Member removed from group successfully.';
 
@@ -521,7 +521,7 @@ async function getTripGroupQr(req, res, next) {
     const currentUserId = req.user.id;
     const tripId = req.params.id;
 
-    const trip = getTrip(db, tripId);
+    const trip = await getTrip(db, tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -529,7 +529,7 @@ async function getTripGroupQr(req, res, next) {
       });
     }
 
-    const group = getGroupByTripId(db, tripId);
+    const group = await getGroupByTripId(db, tripId);
     if (!group) {
       return res.status(404).json({
         success: false,
@@ -538,7 +538,7 @@ async function getTripGroupQr(req, res, next) {
     }
 
     const isOwner = trip.user_id === currentUserId;
-    const membership = db.prepare(`
+    const membership = await db.prepare(`
       SELECT role FROM trip_group_members WHERE group_id = ? AND user_id = ?
     `).get(group.id, currentUserId);
 
@@ -614,7 +614,7 @@ async function getTripGroupQr(req, res, next) {
  * Safe invitation destination and organizer preview for travelers landing on /trips/join.
  * Never leaks private itinerary details, stops, or secret tokens.
  */
-function getGroupInvitationPreview(req, res, next) {
+async function getGroupInvitationPreview(req, res, next) {
   try {
     const db = getDb();
     const { code, token } = req.query || {};
@@ -629,7 +629,7 @@ function getGroupInvitationPreview(req, res, next) {
     let group = null;
     if (code && code.trim()) {
       const normalizedCode = normalizeInviteCode(code);
-      group = db.prepare(`
+      group = await db.prepare(`
         SELECT
           tg.id AS group_id,
           tg.name AS group_name,
@@ -652,7 +652,7 @@ function getGroupInvitationPreview(req, res, next) {
         WHERE tg.invite_code = ?
       `).get(normalizedCode);
     } else if (token && token.trim()) {
-      group = db.prepare(`
+      group = await db.prepare(`
         SELECT
           tg.id AS group_id,
           tg.name AS group_name,

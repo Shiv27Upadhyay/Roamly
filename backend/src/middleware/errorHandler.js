@@ -15,8 +15,11 @@ function errorHandler(err, req, res, next) {
   const status = err.status || err.statusCode || 500;
   const message = err.message || 'An unexpected internal server error occurred.';
 
-  // Handle SQLite specific constraint errors
-  if (err.message && err.message.includes('FOREIGN KEY constraint failed')) {
+  // Handle SQLite and PostgreSQL foreign key constraint errors (Postgres code 23503)
+  if (
+    err.code === '23503' ||
+    (err.message && (err.message.includes('FOREIGN KEY constraint failed') || err.message.includes('violates foreign key constraint')))
+  ) {
     return res.status(400).json({
       success: false,
       error: 'Foreign key constraint failed. Referenced resource does not exist.',
@@ -24,7 +27,11 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  if (err.message && err.message.includes('UNIQUE constraint failed')) {
+  // Handle SQLite and PostgreSQL unique constraint errors (Postgres code 23505)
+  if (
+    err.code === '23505' ||
+    (err.message && (err.message.includes('UNIQUE constraint failed') || err.message.includes('violates unique constraint')))
+  ) {
     return res.status(409).json({
       success: false,
       error: 'Duplicate record. Unique constraint violated.',

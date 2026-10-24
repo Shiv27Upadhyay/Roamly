@@ -7,11 +7,13 @@ node_modules/
 */.env
 *.local
 
-# Database temporary files
+# Database temporary and backup files
 *.db-wal
 *.db-shm
 *.db-journal
+*-backup*.db
 
 # OS files
 .DS_Store
 Thumbs.db
+.neon

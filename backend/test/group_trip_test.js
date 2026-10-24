@@ -210,8 +210,8 @@ async function runGroupTestSuite() {
       normalizeInviteCode('  roam-7k9p  ') === 'ROAM-7K9P' && normalizeInviteCode('7k9p') === 'ROAM-7K9P'
     );
 
-    const uniqueCode = generateUniqueInviteCode(activeDb);
-    const uniqueToken = generateUniqueInviteToken(activeDb);
+    const uniqueCode = await generateUniqueInviteCode(activeDb);
+    const uniqueToken = await generateUniqueInviteToken(activeDb);
     recordTest(
       'generateUniqueInviteCode returns valid unique code',
       typeof uniqueCode === 'string' && uniqueCode.startsWith('ROAM-')

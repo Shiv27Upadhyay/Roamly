@@ -6,7 +6,7 @@
 const { getDb, withTransaction } = require('../config/db');
 const { generateShareToken, isValidShareToken } = require('../utils/token');
 
-function getAllTrips(req, res, next) {
+async function getAllTrips(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user ? req.user.id : null;
@@ -70,7 +70,7 @@ function getAllTrips(req, res, next) {
 
     query += ` ORDER BY t.created_at DESC`;
 
-    const trips = db.prepare(query).all(...params);
+    const trips = await db.prepare(query).all(...params);
 
     const formatted = trips.map(t => {
       const item = {
@@ -91,14 +91,14 @@ function getAllTrips(req, res, next) {
   }
 }
 
-function getTripById(req, res, next) {
+async function getTripById(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user ? req.user.id : null;
     const { id } = req.params;
     const providedToken = req.query.token || req.headers['x-share-token'] || null;
 
-    const trip = db.prepare(`
+    const trip = await db.prepare(`
       SELECT
         t.id,
         t.user_id,
@@ -117,7 +117,6 @@ function getTripById(req, res, next) {
         u.name AS author_name,
         u.username AS author_username,
         u.avatar_url AS author_avatar,
-        u.bio AS author_bio,
         d.title AS destination_title,
         d.country AS destination_country,
         d.continent AS destination_continent,
@@ -141,7 +140,7 @@ function getTripById(req, res, next) {
     // Check if current user is an active member/collaborator of this trip's group
     let isGroupMember = false;
     if (currentUserId && !isOwner) {
-      const membership = db.prepare(`
+      const membership = await db.prepare(`
         SELECT 1
         FROM trip_group_members tgm
         JOIN trip_groups tg ON tg.id = tgm.group_id
@@ -170,7 +169,7 @@ function getTripById(req, res, next) {
     }
 
     // Fetch Stops
-    const stops = db.prepare(`
+    const stops = await db.prepare(`
       SELECT id, trip_id, day_number, place_name, category, cost, notes, sort_order, created_at
       FROM trip_stops
       WHERE trip_id = ?
@@ -178,7 +177,7 @@ function getTripById(req, res, next) {
     `).all(id);
 
     // Fetch Comments
-    const comments = db.prepare(`
+    const comments = await db.prepare(`
       SELECT
         c.id,
         c.trip_id,
@@ -221,7 +220,7 @@ function getTripById(req, res, next) {
   }
 }
 
-function createTrip(req, res, next) {
+async function createTrip(req, res, next) {
   try {
     const currentUserId = req.user.id;
     const {
@@ -237,11 +236,11 @@ function createTrip(req, res, next) {
       visibility = 'public'
     } = req.body;
 
-    const newTrip = withTransaction((db) => {
+    const newTrip = await withTransaction(async (db) => {
       // Determine cover image: explicit OR destination cover OR fallback
       let resolvedCover = cover_image;
       if (!resolvedCover && destination_id) {
-        const dest = db.prepare('SELECT cover_image FROM destinations WHERE id = ?').get(destination_id);
+        const dest = await db.prepare('SELECT cover_image FROM destinations WHERE id = ?').get(destination_id);
         if (dest) resolvedCover = dest.cover_image;
       }
 
@@ -249,7 +248,7 @@ function createTrip(req, res, next) {
       if (visibility === 'unlisted') {
         for (let attempt = 0; attempt < 5; attempt++) {
           const candidate = generateShareToken();
-          const collision = db.prepare('SELECT 1 FROM trips WHERE share_token = ?').get(candidate);
+          const collision = await db.prepare('SELECT 1 FROM trips WHERE share_token = ?').get(candidate);
           if (!collision) {
             shareToken = candidate;
             break;
@@ -262,7 +261,7 @@ function createTrip(req, res, next) {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      const result = insertTripStmt.run(
+      const result = await insertTripStmt.run(
         currentUserId,
         destination_id || null,
         title.trim(),
@@ -285,8 +284,9 @@ function createTrip(req, res, next) {
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
 
-        stops.forEach((stop, idx) => {
-          insertStopStmt.run(
+        for (let idx = 0; idx < stops.length; idx++) {
+          const stop = stops[idx];
+          await insertStopStmt.run(
             tripId,
             parseInt(stop.day_number, 10) || 1,
             stop.place_name.trim(),
@@ -295,7 +295,7 @@ function createTrip(req, res, next) {
             stop.notes ? stop.notes.trim() : null,
             parseInt(stop.sort_order, 10) || (idx + 1)
           );
-        });
+        }
       }
 
       return tripId;
@@ -309,14 +309,14 @@ function createTrip(req, res, next) {
   }
 }
 
-function updateTrip(req, res, next) {
+async function updateTrip(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const { id } = req.params;
 
     // Check if trip exists
-    const existingTrip = db.prepare('SELECT id, user_id, visibility, share_token FROM trips WHERE id = ?').get(id);
+    const existingTrip = await db.prepare('SELECT id, user_id, visibility, share_token FROM trips WHERE id = ?').get(id);
     if (!existingTrip) {
       return res.status(404).json({
         success: false,
@@ -345,7 +345,7 @@ function updateTrip(req, res, next) {
       visibility
     } = req.body;
 
-    withTransaction((txDb) => {
+    await withTransaction(async (txDb) => {
       // Build dynamic update for provided fields
       const updates = [];
       const params = [];
@@ -393,7 +393,7 @@ function updateTrip(req, res, next) {
           if (existingTrip.visibility === 'private' || !tokenToUse) {
             for (let attempt = 0; attempt < 5; attempt++) {
               const candidate = generateShareToken();
-              const collision = txDb.prepare('SELECT 1 FROM trips WHERE share_token = ? AND id != ?').get(candidate, id);
+              const collision = await txDb.prepare('SELECT 1 FROM trips WHERE share_token = ? AND id != ?').get(candidate, id);
               if (!collision) {
                 tokenToUse = candidate;
                 break;
@@ -409,24 +409,25 @@ function updateTrip(req, res, next) {
         }
       }
 
-      updates.push("updated_at = datetime('now')");
+      updates.push("updated_at = CURRENT_TIMESTAMP");
 
       if (updates.length > 0) {
         params.push(id);
-        txDb.prepare(`UPDATE trips SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+        await txDb.prepare(`UPDATE trips SET ${updates.join(', ')} WHERE id = ?`).run(...params);
       }
 
       // If stops are passed, synchronize them
       if (Array.isArray(stops)) {
-        txDb.prepare('DELETE FROM trip_stops WHERE trip_id = ?').run(id);
+        await txDb.prepare('DELETE FROM trip_stops WHERE trip_id = ?').run(id);
 
         const insertStopStmt = txDb.prepare(`
           INSERT INTO trip_stops (trip_id, day_number, place_name, category, cost, notes, sort_order)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
 
-        stops.forEach((stop, idx) => {
-          insertStopStmt.run(
+        for (let idx = 0; idx < stops.length; idx++) {
+          const stop = stops[idx];
+          await insertStopStmt.run(
             id,
             parseInt(stop.day_number, 10) || 1,
             stop.place_name.trim(),
@@ -435,7 +436,7 @@ function updateTrip(req, res, next) {
             stop.notes ? stop.notes.trim() : null,
             parseInt(stop.sort_order, 10) || (idx + 1)
           );
-        });
+        }
       }
     });
 
@@ -445,14 +446,14 @@ function updateTrip(req, res, next) {
   }
 }
 
-function deleteTrip(req, res, next) {
+async function deleteTrip(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const { id } = req.params;
 
     // Check if trip exists
-    const existingTrip = db.prepare('SELECT id, user_id, title FROM trips WHERE id = ?').get(id);
+    const existingTrip = await db.prepare('SELECT id, user_id, title FROM trips WHERE id = ?').get(id);
     if (!existingTrip) {
       return res.status(404).json({
         success: false,
@@ -469,7 +470,7 @@ function deleteTrip(req, res, next) {
     }
 
     // Delete trip (cascade deletes stops, likes, comments)
-    db.prepare('DELETE FROM trips WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM trips WHERE id = ?').run(id);
 
     res.status(200).json({
       success: true,

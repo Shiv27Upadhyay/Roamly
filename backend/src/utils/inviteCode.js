@@ -60,10 +60,10 @@ function normalizeInviteCode(code) {
  * @param {number} maxAttempts - Max retry attempts (default 5)
  * @returns {string} Unique invite code
  */
-function generateUniqueInviteCode(db, maxAttempts = MAX_COLLISION_RETRIES) {
+async function generateUniqueInviteCode(db, maxAttempts = MAX_COLLISION_RETRIES) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const candidate = generateInviteCode();
-    const existing = db.prepare('SELECT 1 FROM trip_groups WHERE invite_code = ?').get(candidate);
+    const existing = await db.prepare('SELECT 1 FROM trip_groups WHERE invite_code = ?').get(candidate);
     if (!existing) {
       return candidate;
     }
@@ -74,14 +74,14 @@ function generateUniqueInviteCode(db, maxAttempts = MAX_COLLISION_RETRIES) {
 /**
  * Generates a unique 192-bit invitation token for URLs and QR codes.
  * Reuses the proven token generator from token.js.
- * @param {object} db - SQLite database instance
+ * @param {object} db - Database instance
  * @param {number} maxAttempts - Max retry attempts (default 5)
- * @returns {string} Unique invite token
+ * @returns {Promise<string>} Unique invite token
  */
-function generateUniqueInviteToken(db, maxAttempts = MAX_COLLISION_RETRIES) {
+async function generateUniqueInviteToken(db, maxAttempts = MAX_COLLISION_RETRIES) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const candidate = generateShareToken();
-    const existing = db.prepare('SELECT 1 FROM trip_groups WHERE invite_token = ?').get(candidate);
+    const existing = await db.prepare('SELECT 1 FROM trip_groups WHERE invite_token = ?').get(candidate);
     if (!existing) {
       return candidate;
     }

@@ -8,19 +8,22 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
-const { getDb, closeDb } = require('./config/db');
+const { getDb, closeDb, isPostgres } = require('./config/db');
 const { seedDatabase } = require('./config/seed');
 const { optionalAuth } = require('./middleware/auth');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const apiRoutes = require('./routes/index');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:5173';
 
-// Initialize Database & Auto-seed if empty
+// Initialize Database & Auto-seed if empty (offline SQLite mode only)
 const db = getDb();
-seedDatabase(false); // Only seeds if destinations table is empty
+if (!isPostgres()) {
+  seedDatabase(false);
+}
 
 // Security & Parsing Global Middlewares
 app.use(helmet({

@@ -11,7 +11,7 @@ const { getDb } = require('../config/db');
  * 2) 'user_id' query param, OR
  * 3) Defaults to Demo User (ID: 1 - Elena Rostova).
  */
-function resolveUser(req, res, next) {
+async function resolveUser(req, res, next) {
   try {
     const db = getDb();
     const rawUserId = req.headers['x-user-id'] || req.query.user_id || 1;
@@ -24,7 +24,7 @@ function resolveUser(req, res, next) {
       });
     }
 
-    const user = db.prepare('SELECT id, name, username, email, avatar_url, bio, home_city FROM users WHERE id = ?').get(userId);
+    const user = await db.prepare('SELECT id, name, username, email, avatar_url, bio, home_city FROM users WHERE id = ?').get(userId);
 
     if (!user) {
       return res.status(404).json({
@@ -64,7 +64,7 @@ function validateIdParam(paramName = 'id') {
 function validateTripPayload(isUpdate = false) {
   const ALLOWED_CATEGORIES = ['Stay', 'Food', 'Culture', 'Nature', 'Activity', 'Transit'];
 
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const { title, start_date, end_date, estimated_budget, destination_id, currency, notes, stops, visibility } = req.body;
     const errors = [];
 
@@ -114,7 +114,7 @@ function validateTripPayload(isUpdate = false) {
         errors.push("Field 'destination_id' must be a valid positive integer if provided.");
       } else {
         const db = getDb();
-        const destExists = db.prepare('SELECT id FROM destinations WHERE id = ?').get(destId);
+        const destExists = await db.prepare('SELECT id FROM destinations WHERE id = ?').get(destId);
         if (!destExists) {
           errors.push(`Referenced destination_id ${destId} does not exist.`);
         }

@@ -9,14 +9,14 @@ const { isValidShareToken } = require('../utils/token');
 /**
  * Toggle bookmark for a destination (Add / Remove)
  */
-function toggleBookmark(req, res, next) {
+async function toggleBookmark(req, res, next) {
   try {
     const db = getDb();
     const userId = req.user.id;
     const destinationId = req.params.id;
 
     // Verify destination exists
-    const dest = db.prepare('SELECT id, title FROM destinations WHERE id = ?').get(destinationId);
+    const dest = await db.prepare('SELECT id, title FROM destinations WHERE id = ?').get(destinationId);
     if (!dest) {
       return res.status(404).json({
         success: false,
@@ -25,10 +25,10 @@ function toggleBookmark(req, res, next) {
     }
 
     // Check existing bookmark
-    const existing = db.prepare('SELECT id FROM bookmarks WHERE user_id = ? AND destination_id = ?').get(userId, destinationId);
+    const existing = await db.prepare('SELECT id FROM bookmarks WHERE user_id = ? AND destination_id = ?').get(userId, destinationId);
 
     if (existing) {
-      db.prepare('DELETE FROM bookmarks WHERE id = ?').run(existing.id);
+      await db.prepare('DELETE FROM bookmarks WHERE id = ?').run(existing.id);
       return res.status(200).json({
         success: true,
         message: `Removed '${dest.title}' from saved wishlist.`,
@@ -38,7 +38,7 @@ function toggleBookmark(req, res, next) {
         }
       });
     } else {
-      db.prepare('INSERT INTO bookmarks (user_id, destination_id) VALUES (?, ?)').run(userId, destinationId);
+      await db.prepare('INSERT INTO bookmarks (user_id, destination_id) VALUES (?, ?)').run(userId, destinationId);
       return res.status(201).json({
         success: true,
         message: `Saved '${dest.title}' to wishlist.`,
@@ -56,12 +56,12 @@ function toggleBookmark(req, res, next) {
 /**
  * Get all bookmarks for the active user
  */
-function getUserBookmarks(req, res, next) {
+async function getUserBookmarks(req, res, next) {
   try {
     const db = getDb();
     const userId = req.user.id;
 
-    const bookmarkedDestinations = db.prepare(`
+    const bookmarkedDestinations = await db.prepare(`
       SELECT
         d.id,
         d.title,
@@ -100,14 +100,14 @@ function getUserBookmarks(req, res, next) {
 /**
  * Toggle like for a trip (Add / Remove)
  */
-function toggleTripLike(req, res, next) {
+async function toggleTripLike(req, res, next) {
   try {
     const db = getDb();
     const userId = req.user.id;
     const tripId = req.params.id;
 
     // Verify trip exists and user has authorization to interact
-    const trip = db.prepare('SELECT id, user_id, title, visibility, share_token FROM trips WHERE id = ?').get(tripId);
+    const trip = await db.prepare('SELECT id, user_id, title, visibility, share_token FROM trips WHERE id = ?').get(tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -120,7 +120,7 @@ function toggleTripLike(req, res, next) {
 
     let isGroupMember = false;
     if (!isOwner) {
-      const membership = db.prepare(`
+      const membership = await db.prepare(`
         SELECT 1
         FROM trip_group_members tgm
         JOIN trip_groups tg ON tg.id = tgm.group_id
@@ -146,18 +146,19 @@ function toggleTripLike(req, res, next) {
       }
     }
 
-    const existing = db.prepare('SELECT id FROM trip_likes WHERE user_id = ? AND trip_id = ?').get(userId, tripId);
+    const existing = await db.prepare('SELECT id FROM trip_likes WHERE user_id = ? AND trip_id = ?').get(userId, tripId);
     let isLikedNow = false;
 
     if (existing) {
-      db.prepare('DELETE FROM trip_likes WHERE id = ?').run(existing.id);
+      await db.prepare('DELETE FROM trip_likes WHERE id = ?').run(existing.id);
       isLikedNow = false;
     } else {
-      db.prepare('INSERT INTO trip_likes (user_id, trip_id) VALUES (?, ?)').run(userId, tripId);
+      await db.prepare('INSERT INTO trip_likes (user_id, trip_id) VALUES (?, ?)').run(userId, tripId);
       isLikedNow = true;
     }
 
-    const likesCount = db.prepare('SELECT COUNT(*) as count FROM trip_likes WHERE trip_id = ?').get(tripId).count;
+    const likesCountRes = await db.prepare('SELECT COUNT(*) as count FROM trip_likes WHERE trip_id = ?').get(tripId);
+    const likesCount = parseInt(likesCountRes.count, 10);
 
     res.status(200).json({
       success: true,
@@ -176,7 +177,7 @@ function toggleTripLike(req, res, next) {
 /**
  * Add a comment to a trip
  */
-function addTripComment(req, res, next) {
+async function addTripComment(req, res, next) {
   try {
     const db = getDb();
     const userId = req.user.id;
@@ -184,7 +185,7 @@ function addTripComment(req, res, next) {
     const { content } = req.body;
 
     // Verify trip exists and user has authorization to comment
-    const trip = db.prepare('SELECT id, user_id, visibility, share_token FROM trips WHERE id = ?').get(tripId);
+    const trip = await db.prepare('SELECT id, user_id, visibility, share_token FROM trips WHERE id = ?').get(tripId);
     if (!trip) {
       return res.status(404).json({
         success: false,
@@ -197,7 +198,7 @@ function addTripComment(req, res, next) {
 
     let isGroupMember = false;
     if (!isOwner) {
-      const membership = db.prepare(`
+      const membership = await db.prepare(`
         SELECT 1
         FROM trip_group_members tgm
         JOIN trip_groups tg ON tg.id = tgm.group_id
@@ -223,14 +224,14 @@ function addTripComment(req, res, next) {
       }
     }
 
-    const result = db.prepare(`
+    const result = await db.prepare(`
       INSERT INTO comments (trip_id, user_id, content)
       VALUES (?, ?, ?)
     `).run(tripId, userId, content.trim());
 
     const commentId = Number(result.lastInsertRowid);
 
-    const createdComment = db.prepare(`
+    const createdComment = await db.prepare(`
       SELECT
         c.id,
         c.trip_id,
@@ -258,13 +259,13 @@ function addTripComment(req, res, next) {
 /**
  * Delete a comment (Ownership verified)
  */
-function deleteComment(req, res, next) {
+async function deleteComment(req, res, next) {
   try {
     const db = getDb();
     const currentUserId = req.user.id;
     const { id } = req.params;
 
-    const comment = db.prepare('SELECT id, user_id, trip_id FROM comments WHERE id = ?').get(id);
+    const comment = await db.prepare('SELECT id, user_id, trip_id FROM comments WHERE id = ?').get(id);
     if (!comment) {
       return res.status(404).json({
         success: false,
@@ -279,7 +280,7 @@ function deleteComment(req, res, next) {
       });
     }
 
-    db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+    await db.prepare('DELETE FROM comments WHERE id = ?').run(id);
 
     res.status(200).json({
       success: true,

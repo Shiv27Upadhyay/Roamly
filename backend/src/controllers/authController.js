@@ -70,7 +70,7 @@ async function loginWithGoogle(req, res, next) {
     let user = null;
 
     // 1. Check if user already exists with this google_id
-    user = db.prepare(`
+    user = await db.prepare(`
       SELECT id, name, username, email, avatar_url, bio, home_city, google_id, created_at
       FROM users
       WHERE google_id = ?
@@ -78,7 +78,7 @@ async function loginWithGoogle(req, res, next) {
 
     if (!user) {
       // 2. Check if an account already exists with this email
-      const existingByEmail = db.prepare(`
+      const existingByEmail = await db.prepare(`
         SELECT id, name, username, email, avatar_url, bio, home_city, google_id, created_at
         FROM users
         WHERE LOWER(email) = ?
@@ -91,7 +91,7 @@ async function loginWithGoogle(req, res, next) {
 
         if (isDemo) {
           // Create a new separate user for the Google identity to protect demo data
-          user = createNewGoogleUser(db, payload, googleId, emailLower);
+          user = await createNewGoogleUser(db, payload, googleId, emailLower);
         } else if (existingByEmail.google_id && existingByEmail.google_id !== googleId) {
           // Conflict: Existing account is already permanently bound to another Google identity
           return res.status(409).json({
@@ -100,14 +100,14 @@ async function loginWithGoogle(req, res, next) {
           });
         } else {
           // Safe link: Verified email with no existing conflicting Google link
-          db.prepare(`
+          await db.prepare(`
             UPDATE users
             SET google_id = ?,
                 avatar_url = COALESCE(avatar_url, ?)
             WHERE id = ?
           `).run(googleId, payload.picture || null, existingByEmail.id);
 
-          user = db.prepare(`
+          user = await db.prepare(`
             SELECT id, name, username, email, avatar_url, bio, home_city, google_id, created_at
             FROM users
             WHERE id = ?
@@ -115,7 +115,7 @@ async function loginWithGoogle(req, res, next) {
         }
       } else {
         // 3. Brand new user
-        user = createNewGoogleUser(db, payload, googleId, emailLower);
+        user = await createNewGoogleUser(db, payload, googleId, emailLower);
       }
     }
 
@@ -144,7 +144,7 @@ async function loginWithGoogle(req, res, next) {
 /**
  * Derives a unique username and inserts a new user record.
  */
-function createNewGoogleUser(db, payload, googleId, emailLower) {
+async function createNewGoogleUser(db, payload, googleId, emailLower) {
   let baseUsername = emailLower.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '');
   if (baseUsername.length < 3) {
     baseUsername = `user_${baseUsername}`;
@@ -152,7 +152,7 @@ function createNewGoogleUser(db, payload, googleId, emailLower) {
 
   let candidateUsername = baseUsername;
   let counter = 1;
-  while (db.prepare('SELECT id FROM users WHERE username = ?').get(candidateUsername)) {
+  while (await db.prepare('SELECT id FROM users WHERE username = ?').get(candidateUsername)) {
     candidateUsername = `${baseUsername}_${Math.floor(1000 + Math.random() * 9000)}`;
     counter++;
     if (counter > 10) {
@@ -161,7 +161,7 @@ function createNewGoogleUser(db, payload, googleId, emailLower) {
     }
   }
 
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO users (name, username, email, avatar_url, google_id)
     VALUES (?, ?, ?, ?, ?)
   `).run(
@@ -173,7 +173,7 @@ function createNewGoogleUser(db, payload, googleId, emailLower) {
   );
 
   const newUserId = Number(result.lastInsertRowid);
-  return db.prepare(`
+  return await db.prepare(`
     SELECT id, name, username, email, avatar_url, bio, home_city, google_id, created_at
     FROM users
     WHERE id = ?
