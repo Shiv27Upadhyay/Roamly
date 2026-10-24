@@ -1,442 +1,512 @@
 # Roamly — Discover. Plan. Remember.
 
-A polished full-stack travel discovery and collaborative trip-planning web application built for the **Full Stack Developer Internship Technical Assignment (Rewamp Digital)**.
-
-**Candidate Submission Deadline:** 25 October 2026, 12:00 PM IST.
+A mindful, full-stack travel discovery and collaborative trip-planning journal built for the **Full Stack Developer Internship Technical Assignment (Rewamp Digital)**.
 
 ---
 
-## Table of Contents
+## 1. Project Title & Introduction
 
-- [1. Technical Stack Overview](#1-technical-stack-overview)
-- [2. Rewamp Digital Assignment Requirements Matrix](#2-rewamp-digital-assignment-requirements-matrix)
-- [3. Architecture Overview](#3-architecture-overview)
-- [4. Core Features & User Workflows](#4-core-features--user-workflows)
-- [5. Project Structure](#5-project-structure)
-- [6. Local Setup & Execution Guide](#6-local-setup--execution-guide)
-- [7. Verification & Testing](#7-verification--testing)
-- [8. Application Screenshots & Visual Tour](#8-application-screenshots--visual-tour)
-- [9. REST API Reference](#9-rest-api-reference)
-- [10. Editorial Design System Tokens](#10-editorial-design-system-tokens)
+**Roamly** is a curated travel discovery platform and itinerary planner designed with an authentic editorial aesthetic. 
 
----
+### The Problem It Solves
+Travel planning is frequently fragmented across disconnected tools: bookmarks are lost in browsers, itineraries live in messy spreadsheets, companion coordination is scattered across chat apps, and budget tracking lacks transparency.
 
-## 1. Technical Stack Overview
-
-- **Frontend**: React 19 (`^19.3.1`), Vite (`^8.3.4`), React Router 7 (`^7.18.4`), Lucide React Icons (`^1.60.0`).
-- **Styling**: Bespoke Editorial Vanilla CSS Design System with custom design tokens (warm ivory, sand, terracotta, sage, ochre, deep ink). Zero AI-dashboard templates, zero generic blue gradients, zero third-party CSS frameworks.
-- **Backend**: Node.js (`v24.21.0`), Express (`v4.21.2`), Native SQLite (`node:sqlite`).
-- **Database Engine**: Persistent disk SQLite file (`backend/data/roamly.db`) utilizing Node.js 24 native `DatabaseSync` engine, Write-Ahead Logging (WAL) journaling, foreign key cascade enforcement, and atomic transactions.
-- **Testing & Verification**: Automated end-to-end integration test suite exercising all 11 mandatory assignment requirements (33/33 tests passing) plus frontend code quality verification via `oxlint`.
+Roamly unifies the entire journey into a single, cohesive experience:
+- **Discover**: Browse handpicked global sanctuaries with narrative travel guides, optimal seasons, regional dining highlights, and budget tier classifications.
+- **Plan**: Construct day-by-day itineraries with categorized stops (`Stay`, `Food`, `Culture`, `Nature`, `Activity`, `Transit`), individual item costs, and automatic budget summation.
+- **Collaborate**: Create shared group workspaces with unique alphanumeric invite codes (`ROAM-XXXX`), dynamic vector QR codes, and companion access.
+- **Capture**: Preserve authentic memories through distinct photo and video galleries powered by direct client-side uploads.
+- **Control**: Maintain granular control over trip visibility (`Public`, `Unlisted` via secret share tokens, or `Private` for companions only).
 
 ---
 
-## 2. Rewamp Digital Assignment Requirements Matrix
+## 2. Important Links
 
-| # | Requirement | Implementation in Roamly | Verification Status |
-| :-: | :--- | :--- | :--- :--- |
-| **1** | **Home page** | Editorial landing with brand manifesto, destination spotlights, quick search, and trending community itineraries. | Verified (`/`) |
-| **2** | **Listing and details** | Curated catalog at `/destinations` & `/destinations/:id`; Itinerary directory at `/trips` & `/trips/:id`. | Verified |
-| **3** | **Create and update** | Full trip creation & itinerary editor at `/trips/new` and `/trips/:id/edit` with day-by-day stops and budget calculations. | Verified |
-| **4** | **Delete** | Author-verified trip and comment deletion with confirmation modals and cascading cleanup. | Verified |
-| **5** | **Interactions** | **3 Real interactions**: Wishlist Bookmarking (destinations), Likes (trips), and live Discussion Comments. | Verified |
-| **6** | **Search & filtering** | Keyword search across titles, countries, and tags; Filter pills by Continent (Region) and Budget Tier (`$`, `$$`, `$$$`). | Verified |
-| **7** | **User profile** | Profile page (`/profile`) showing Elena Rostova's bio, home city, stats, created trips, and saved wishlist items. | Verified |
-| **8** | **Backend API** | Structured REST API with validation, clean JSON responses, 404 handlers, and centralized error logging. | Verified (`/api/*`) |
-| **9** | **Database persistence** | SQLite database file (`roamly.db`) persisting on disk across server shutdowns and restarts. | Verified |
-| **10** | **Validation & error handling** | Form validation, date sequence checks, negative budget prevention, HTTP 400/403/404/500 codes, loading skeletons, and empty states. | Verified |
-| **11** | **Responsive UI** | Fluid layouts optimized for mobile (360px), tablet (640px), and desktop (1024px–1440px) with responsive navigation drawer. | Verified |
+| Resource | URL |
+|---|---|
+| 🌐 **Live Website** | [https://roamly-ruby.vercel.app/](https://roamly-ruby.vercel.app/) |
+| 🎥 **Demo Video** | [https://drive.google.com/file/d/1iK21h2vJ4z_-nazSUFWEC1W4dzz_OyK0/view?usp=sharing](https://drive.google.com/file/d/1iK21h2vJ4z_-nazSUFWEC1W4dzz_OyK0/view?usp=sharing) |
+| 💻 **GitHub Repository** | [https://github.com/Shiv27Upadhyay/Roamly](https://github.com/Shiv27Upadhyay/Roamly) |
 
 ---
 
-## 3. Architecture Overview
+## 3. Features & Implemented Workflows
 
-Roamly uses a decoupled client-server architecture with an integrated development proxy, native database engine, and strict separation of concerns:
+### 1. Curated Destinations Catalog (`/destinations`, `/destinations/:id`)
+- **Global Sanctuaries**: 8 curated editorial destinations across Europe, Asia, the Americas, Africa, and Oceania (Kyoto, Amalfi Coast, Oaxaca, Reykjavik, Chefchaouen, Queenstown, Porto, Banff).
+- **Search & Filters**: Real-time keyword search across titles, countries, and tags, paired with filter pills by Continent/Region and Budget Tier (`₹ Budget`, `₹₹ Moderate`, `₹₹₹ Luxury`).
+- **Comprehensive Guide**: In-depth overview, optimal travel season, budget classification badge, location coordinates, and linked community itineraries.
+- **Wishlist Interaction**: Instant bookmark toggle to save destinations to personal wishlists.
+
+### 2. Collaborative Itinerary Studio (`/trips`, `/trips/new`, `/trips/:id`, `/trips/:id/edit`)
+- **Community Directory**: Explore published itineraries with author profiles, destination association, travel dates, stop counts, like counters, and estimated budgets.
+- **Day-by-Day Stop Builder**: Dynamic stops editor categorized by `Stay`, `Food`, `Culture`, `Nature`, `Activity`, and `Transit` with individual item costs, day reordering, and automatic budget summation.
+- **Author Ownership Protection**: Strict author-only authorization. Only the trip creator can update or delete itineraries. Mismatched users receive HTTP 403 Forbidden. Deletions cascade cleanly to all stops, media, likes, and comments.
+
+### 3. Real User Interactions
+- **Wishlist Bookmarks**: Save and unsave destinations from cards or detail views, updating the user profile wishlist tab.
+- **Itinerary Likes**: Toggle likes on travel itineraries with real-time like count counters.
+- **Discussion Comments**: Threaded discussion on each itinerary with authenticated author attribution and author-only comment deletion.
+
+### 4. Granular Trip Privacy & Authorization
+- **Public**: Discoverable in search, community directories, destination guides, and profile views.
+- **Unlisted**: Excluded from public feeds; accessible exclusively to visitors possessing a high-entropy 32-character cryptographic share token.
+- **Private**: Hidden from anonymous users and outsiders. Accessible strictly by the author and accepted group companions. Outsiders receive a uniform HTTP 404 Not Found to prevent existence disclosure.
+
+### 5. Group Trips & Dynamic QR Invitations (`/trips/:id`, `/trips/join`)
+- **Companion Workspaces**: Trip authors can initialize a collaborative companion group.
+- **Alphanumeric Invite Codes**: Cryptographically generated, memorable 9-character invite codes (`ROAM-XXXX`) using an unambiguous 32-character alphabet (20-bit entropy).
+- **Dynamic QR Codes**: Real-time generated vector SVG and raster QR codes pointing directly to canonical join flows for seamless mobile onboarding.
+- **Invite Lifecycle Management**: Rotate invitation tokens instantly to invalidate old links, or pause/revoke invitations across active groups.
+
+### 6. Photos & Videos Media Galleries (`/trips/:id`)
+- **Separated Media Sections**: Dedicated gallery layouts for high-resolution trip Photos and native in-page Videos.
+- **Direct Cloudinary Uploads**: Client-side direct signed uploads with authenticated signature generation on the backend, zero server bandwidth bottlenecks, and live progress tracking.
+- **Photo Lightbox**: Full-screen modal viewer with keyboard navigation (Arrow keys, Escape), zoom display, download options, captions, and uploader attribution.
+- **In-Page Video Playback**: Native HTML5 controls, duration badges (up to 180s / 3 minutes), and poster thumbnails.
+- **Validation**: Strict file size caps (Photos $\le$ 10 MB, Videos $\le$ 100 MB), MIME whitelisting (JPEG, PNG, WebP, HEIC, MP4, MOV, WebM), and pre-upload duration verification.
+
+### 7. User Profiles & Google Authentication (`/profile`)
+- **Google Identity Services**: Official Google OAuth 2.0 Web Client integration with secure server-side credential verification (`google-auth-library`).
+- **Session Security**: Authenticated sessions stored in HttpOnly cookies and Bearer tokens with CSRF protections and spoofing prevention.
+- **User Dashboard**: Aggregated travel statistics (itineraries created, wishlists saved), traveler bio, home city, and tabbed navigation.
+
+### 8. Currency System & INR Formatting
+- **Indian Rupee (INR, ₹) Default**: Default currency throughout the entire application, formatted with standard Indian numbering groupings (`en-IN`, e.g., `₹2,66,000`, `₹1,28,250`).
+- **Multi-Currency Support**: Full support preserved for international currencies (`USD`, `EUR`, `GBP`, `JPY`, `CAD`, `AUD`).
+- **Budget Tier Classifications**: Displayed with Rupee symbols (`₹ Budget`, `₹₹ Moderate`, `₹₹₹ Luxury`).
+
+### 9. Smart Features Concepts (`/smart-features`)
+- **Smart Memories (Concept Preview)**: Facial-recognition-inspired trip photo discovery prototype demonstrating companion clustering, sample photo filtering, and privacy safeguards without active biometric processing.
+- **Smart Search (Concept Preview)**: Natural-language travel discovery prototype featuring conversational prompt chips, travel-interest filters, and illustrative destination previews without fabricated live AI results.
+
+---
+
+## 4. Visual Tour & Application Screenshots
+
+The following verified screenshots reflect the live application running in the repository:
+
+### 1. Editorial Homepage (`/`)
+*Brand manifesto, destination spotlights, quick search, and trending community itineraries.*
+![Editorial Homepage](docs/screenshots/01_homepage_hero_and_spotlights.png)
+
+---
+
+### 2. Curated Destinations Catalog (`/destinations`)
+*Keyword search, Continent filter pills, Rupee budget tier indicators, and wishlist toggles.*
+![Curated Destinations Catalog](docs/screenshots/02_destinations_catalog_and_filters.png)
+
+---
+
+### 3. Destination Detail Page (`/destinations/:id`)
+*Cover imagery, narrative travel guide, optimal travel season, and associated itineraries.*
+![Destination Detail Page](docs/screenshots/03_destination_detail_guide.png)
+
+---
+
+### 4. Community Itineraries Directory (`/trips`)
+*Directory of travel itineraries, dates, destination tags, stop counters, and estimated budgets.*
+![Community Itineraries Directory](docs/screenshots/04_trips_directory.png)
+
+---
+
+### 5. Day-by-Day Itinerary Detail (`/trips/:id`)
+*Chronological day-by-day stops timeline, category badges, like counter, and discussion comments feed.*
+![Day-by-Day Itinerary Detail](docs/screenshots/05_trip_detail_and_discussion.png)
+
+---
+
+### 6. Trip Creation & Itinerary Editor (`/trips/new`)
+*Full itinerary authoring studio, date validation, currency selector, and dynamic stops editor.*
+![Trip Creation & Itinerary Editor](docs/screenshots/06_trip_creator_and_stops_editor.png)
+
+---
+
+### 7. User Profile Dashboard (`/profile`)
+*Active user profile, bio, home city, aggregated stats, created itineraries, and saved wishlists.*
+![User Profile Dashboard](docs/screenshots/07_user_profile_and_wishlist.png)
+
+---
+
+## 5. Technology Stack & Architecture
+
+Roamly uses a decoupled client-server architecture with an integrated development proxy, hybrid dual-engine database architecture, and strict separation of concerns:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        BROWSER CLIENT (SPA)                           │
-│  React 19 • React Router 7 • Lucide Icons • Editorial Vanilla CSS      │
-│  Dev Server: http://localhost:5173                                    │
+│  React 19 • Vite • React Router 7 • Lucide Icons • Editorial CSS       │
+│  Production: Vercel (https://roamly-ruby.vercel.app)                  │
+│  Development: http://localhost:5173                                   │
 └──────────────────┬────────────────────────────────▲───────────────────┘
                    │                                │
                    │  /api/* requests (Fetch API)   │  JSON responses
                    ▼                                │
 ┌──────────────────┴────────────────────────────────┴───────────────────┐
-│                    VITE DEVELOPMENT SERVER PROXY                       │
-│  Target: http://localhost:5000 (Eliminates CORS in development)       │
+│                    API GATEWAY / REVERSE PROXY                        │
+│  Production: Vercel Rewrites (/api/:path* -> Render Backend)          │
+│  Development: Vite Proxy (/api -> http://localhost:5000)              │
 └──────────────────┬────────────────────────────────▲───────────────────┘
                    │                                │
                    ▼                                │
 ┌──────────────────┴────────────────────────────────┴───────────────────┐
 │                      EXPRESS REST API BACKEND                          │
 │  Node.js (v24.21.0 / v22.5+) • Express 4.21 • Port 5000               │
-│  Sub-Routers: /api/destinations, /api/trips, /api/profile, etc.       │
-│  Middleware: resolveUser, validatePayload, errorHandler, 404Handler    │
+│  Production: Render Web Service (https://roamly-ax2g.onrender.com)     │
+│  Middleware: auth, validation, errorHandler, helmet, cors, cookies    │
 └──────────────────┬────────────────────────────────▲───────────────────┘
                    │                                │
                    ▼                                │
 ┌──────────────────┴────────────────────────────────┴───────────────────┐
-│                   NATIVE SQLITE DATABASE ENGINE                        │
-│  Node.js 24 native 'node:sqlite' DatabaseSync engine                  │
-│  WAL Journaling • Foreign Key Cascades • Atomic Transactions          │
-│  Persistent Disk File: backend/data/roamly.db (7 Relational Tables)   │
+│                     HYBRID PERSISTENCE TIER                           │
+│  PRODUCTION: Neon Serverless PostgreSQL (pg.Pool with SSL pooling)     │
+│  LOCAL DEV & TESTING: Native SQLite (node:sqlite DatabaseSync, WAL)   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Architectural Highlights
-1. **Client Tier**: Single-page application using React 19 and React Router 7. Features an editorial layout with responsive navigation drawer, modular cards, loading skeletons, and a centralized `api.js` client.
-2. **Proxy Tier**: Vite dev server forwards all `/api/*` requests directly to `http://localhost:5000`, matching production reverse-proxy setups.
-3. **Server Tier**: RESTful Express service with route-level middleware for request validation, author-ownership authorization (returning HTTP 403 on mismatched user ID), and centralized error handling.
-4. **Persistence Tier**: Pure native SQLite (`node:sqlite`) with zero native C++ compile steps, automatic database schema generation on initial boot, disk persistence across restarts, and atomic transactions (`BEGIN` / `COMMIT` / `ROLLBACK`) for multi-stop itinerary mutations.
+### Technology Breakdown
+
+| Tier | Technology | Purpose |
+|---|---|---|
+| **Frontend** | **React 19** (`^19.3.1`) | Single-page application UI framework |
+| **Tooling** | **Vite** (`^8.3.4`) | High-performance build tool and local dev server |
+| **Routing** | **React Router 7** (`^7.18.4`) | Client-side routing with deep link and SPA fallback support |
+| **Icons** | **Lucide React** (`^1.60.0`) | Modern travel, navigation, and UI icon library |
+| **Styling** | **Editorial Vanilla CSS** | Custom design system with CSS tokens (ivory, sand, terracotta, sage, ochre, ink); zero generic UI kits |
+| **Backend** | **Node.js** (`v24.21.0` / `v22.5+`) | Runtime environment with native SQLite and cryptographic primitives |
+| **API Framework** | **Express** (`^4.21.2`) | Structured RESTful routing, validation, and error handling |
+| **Auth** | **Google Auth Library** (`^11.3.1`) | Server-side Google ID token verification |
+| **Media** | **Cloudinary SDK** (`^2.11.0`) | Secure upload signature generation and asset management |
+| **QR Generation** | **QRCode** (`^1.5.4`) | Dynamic vector SVG and raster QR generation for companion invites |
+| **Production DB** | **Neon PostgreSQL** (`pg ^8.23.1`) | Hosted serverless PostgreSQL with connection pooling (`pg.Pool`) |
+| **Local/Test DB** | **Native SQLite** (`node:sqlite`) | Persistent disk database with WAL journaling and atomic transactions |
+| **Static Analysis** | **Oxlint** | High-speed frontend linting and React hook static analysis |
 
 ---
 
-## 4. Core Features & User Workflows
-
-### Curated Destinations Catalog (`/destinations` & `/destinations/:id`)
-- **Discovery Catalog**: 8 seed destinations across Europe, Asia, Americas, and Africa (Kyoto, Amalfi Coast, Oaxaca, Reykjavik, Chefchaouen, Queenstown, Porto, Banff).
-- **Search & Filtering**: Real-time keyword search across destination titles, countries, and tags; Filter pills by continent (All, Europe, Asia, Americas, Africa, Oceania) and budget tier (`$`, `$$`, `$$$`).
-- **Destination Guide**: Narrative overview, optimal season, budget tier, continent/country tags, and associated community itineraries.
-- **Wishlist Interaction**: Instant bookmark toggle with optimistic UI updates.
-
-### Collaborative Trip Planning & Itineraries (`/trips`, `/trips/new`, `/trips/:id`)
-- **Community Itineraries**: Directory of travel itineraries with author info, destination tags, travel dates, stop counts, budget estimates, and like counts.
-- **Day-by-Day Stop Builder**: Dynamic stops editor categorized by `Stay`, `Food`, `Culture`, `Nature`, `Activity`, and `Transit` with individual cost tracking and automatic budget summation.
-- **Author Ownership Security**: Only the author of a trip can modify or delete it. Non-owners receive HTTP 403 Forbidden. Deletions cascade cleanly to all associated stops, likes, and comments.
-
-### Real User Interactions
-- **Interaction 1: Wishlist Bookmarks**: Save/unsave destinations directly from cards or detail views.
-- **Interaction 2: Itinerary Likes**: Toggle likes on trips with live like count counters.
-- **Interaction 3: Discussion Comments**: Real-time discussion thread on each trip with author attribution and author-only comment deletion.
-
-### Group Trips & QR Invitations (`/trips/:id`, `/trips/join`)
-- **Trip Workspaces**: Form collaborative travel groups with fellow travelers.
-- **Cryptographic Share Codes**: Memorable alphanumeric invite codes (`ROAM-XXXX`) with 20-bit entropy and high-entropy base64url tokens.
-- **Dynamic QR Codes**: Generated vector SVG and raster QR codes for instant mobile companion onboarding.
-- **Invite Lifecycle Management**: Rotate invitation tokens instantly or revoke access across active groups.
-
-### Photos & Videos Media Experience (`/trips/:id`)
-- **Distinct Media Sections**: Separate galleries for high-resolution trip Photos and native in-page Videos.
-- **Direct Cloudinary Uploads**: Client-side direct signed uploads with zero server bottleneck and authentic XMLHttpRequest progress tracking.
-- **Photo Lightbox**: Full-screen modal viewer with keyboard arrow navigation, zoom display, download options, captions, and uploader attribution.
-- **In-Page Video Playback**: Native HTML5 controls, duration badges (up to 180s / 3 minutes), and poster thumbnails.
-- **Client & Server Validation**: Strict size caps (Photos $\le$ 10 MB, Videos $\le$ 100 MB), MIME whitelisting (JPEG, PNG, WebP, HEIC, MP4, MOV, WebM), and pre-upload duration verification.
-- **Privacy Enforcement**: Private and unlisted trips deliver signed Cloudinary URLs accessible only to authorized owners and companion members.
-
-### Smart Features Concepts (`/smart-features`)
-- **Smart Memories (Concept Preview)**: Facial-recognition-inspired trip photo discovery prototype demonstrating companion persona clustering, sample photo filtering, and ethical privacy safeguards without active biometric processing.
-- **Smart Search (Coming Soon Preview)**: Natural-language travel discovery prototype featuring conversational prompt chips, travel-interest filters, and illustrative destination previews without fabricated live AI results.
-
-### User Profile Dashboard (`/profile`)
-- Displays user bio, home city, avatar, and aggregated travel statistics (trips planned, destinations saved).
-- Tabbed views for "My Itineraries" and "Saved Wishlist" for quick trip management.
-- Defaults to primary demo user **Elena Rostova** (User ID 1) with seamless context resolution.
-
----
-
-## 5. Project Structure
+## 6. Project Structure
 
 ```text
 d:/Internship/
 ├── backend/
-│   ├── data/
-│   │   └── roamly.db              # Persistent SQLite database file
+│   ├── data/                      # Local SQLite database files & automated backups
+│   │   └── roamly.db              # Local persistent SQLite database
 │   ├── src/
 │   │   ├── config/
-│   │   │   ├── db.js              # DatabaseSync connection & transaction wrapper
-│   │   │   ├── schema.js          # DDL definitions for the 7 relational tables
-│   │   │   └── seed.js            # Curated destinations, demo users & itineraries
+│   │   │   ├── cloudinary.js      # Cloudinary signature generation & media caps
+│   │   │   ├── db.js              # Hybrid DB manager (Neon PostgreSQL / Native SQLite)
+│   │   │   ├── postgresSchema.js  # PostgreSQL DDL schema definitions
+│   │   │   ├── schema.js          # SQLite DDL schema definitions & migrations
+│   │   │   └── seed.js            # Curated destinations, users, trips & stops
 │   │   ├── controllers/
+│   │   │   ├── authController.js        # Google authentication & session lifecycle
 │   │   │   ├── destinationController.js # Catalog, search, filters & details
-│   │   │   ├── interactionController.js # Bookmarks, likes & comments
-│   │   │   ├── profileController.js     # User stats, trips & wishlists
-│   │   │   └── tripController.js        # Trip CRUD & multi-stop sync
+│   │   │   ├── groupController.js       # Group trips, invite tokens & QR codes
+│   │   │   ├── interactionController.js # Wishlist bookmarks, likes & comments
+│   │   │   ├── mediaController.js       # Upload signatures, metadata & moderation
+│   │   │   ├── profileController.js     # User stats, created trips & wishlists
+│   │   │   └── tripController.js        # Itinerary CRUD, stops sync & privacy gates
 │   │   ├── middleware/
-│   │   │   ├── errorHandler.js    # 404 & Centralized JSON error handler
-│   │   │   └── validate.js        # Payload & parameter validation rules
+│   │   │   ├── auth.js            # Session verification & identity resolution
+│   │   │   ├── errorHandler.js    # Centralized JSON error handling & 404 gate
+│   │   │   └── validate.js        # Payload validation & boundary guards
 │   │   ├── routes/
+│   │   │   ├── authRoutes.js
 │   │   │   ├── destinationRoutes.js
+│   │   │   ├── groupRoutes.js
 │   │   │   ├── interactionRoutes.js
+│   │   │   ├── mediaRoutes.js
 │   │   │   ├── profileRoutes.js
 │   │   │   ├── tripRoutes.js
-│   │   │   └── index.js           # API route aggregator mounted at /api
-│   │   └── server.js              # Express app entry point (port 5000)
+│   │   │   └── index.js           # Main API router mounted at /api
+│   │   ├── scripts/
+│   │   │   └── migrateUsdToInr.js # Dedicated transactional USD-to-INR migration runner
+│   │   ├── utils/
+│   │   │   └── token.js           # Cryptographic invite codes & share tokens
+│   │   └── server.js              # Express app entry point
 │   ├── test/
-│   │   └── api_test.js            # Automated E2E test suite (33 assertions)
-│   ├── .env.example
-│   ├── package.json
-│   └── README.md
+│   │   ├── api_test.js                # Core API E2E & persistence tests (33 tests)
+│   │   ├── auth_security_test.js      # Auth, Google tokens & IDOR defense (33 tests)
+│   │   ├── currency_migration_test.js # INR conversion & idempotency tests (15 tests)
+│   │   ├── group_trip_test.js         # Group trips, invite tokens & QR tests (53 tests)
+│   │   ├── trip_media_test.js         # Media signatures & Cloudinary tests (36 tests)
+│   │   └── trip_privacy_test.js       # Privacy tiers & token authorization (42 tests)
+│   ├── .env.example               # Backend environment template
+│   └── package.json
 ├── frontend/
 │   ├── public/
-│   │   └── favicon.svg            # Custom terracotta & ink compass icon
+│   │   └── favicon.svg            # Custom terracotta compass icon
 │   ├── src/
-│   │   ├── assets/
-│   │   │   └── hero.png           # Hero banner artwork
+│   │   ├── assets/                # Hero banner artwork
 │   │   ├── components/
-│   │   │   ├── common/            # DestinationCard, TripCard, LoadingSkeleton, EmptyState, ConfirmModal, ErrorBanner
-│   │   │   └── layout/            # Navbar with responsive drawer, Footer with credits
+│   │   │   ├── auth/              # GoogleSignInButton, AuthModal
+│   │   │   ├── common/            # DestinationCard, TripCard, Modals, Skeletons
+│   │   │   ├── home/              # CinematicDestinationExperience
+│   │   │   ├── layout/            # Navbar with responsive drawer, Footer
+│   │   │   └── trips/             # PhotoLightbox, MediaUploadModal, MediaGalleries
 │   │   ├── context/
-│   │   │   └── ToastContext.jsx   # Global toast notification provider
-│   │   ├── pages/                 # Home, Destinations, DestinationDetail, Trips, TripDetail, CreateEditTrip, Profile
+│   │   │   ├── AuthContext.jsx    # Client auth state provider
+│   │   │   └── ToastContext.jsx   # Global toast notifications
+│   │   ├── pages/                 # Home, Destinations, Trips, TripDetail, Profile, etc.
 │   │   ├── services/
-│   │   │   └── api.js             # Centralized API fetch wrapper with /api proxy
-│   │   ├── styles/                # variables.css, base.css, components.css, layout.css
-│   │   ├── App.css
-│   │   ├── App.jsx                # Client router shell
-│   │   ├── index.css              # Master styling entry
-│   │   └── main.jsx
-│   ├── .oxlintrc.json             # Code quality and React hook rules
-│   ├── index.html
-│   ├── vite.config.js             # Dev server & proxy configuration to port 5000
+│   │   │   └── api.js             # Centralized fetch wrapper with /api relative routing
+│   │   ├── styles/                # CSS custom properties, tokens, and base styles
+│   │   └── utils/
+│   │       └── currency.js        # Centralized currency formatters (INR, multi-currency)
+│   ├── .env.example               # Frontend environment template
+│   ├── .oxlintrc.json             # Code quality configuration
 │   ├── package.json
-│   └── README.md
+│   ├── vercel.json                # Vercel reverse proxy rewrites & SPA routing fallback
+│   └── vite.config.js             # Dev server & proxy configuration to port 5000
 ├── docs/
 │   └── screenshots/               # Verified full-resolution application screenshots
 ├── .gitignore
-└── README.md
+└── README.md                      # Root project documentation
 ```
 
 ---
 
-## 6. Local Setup & Execution Guide
+## 7. Prerequisites
 
-### Prerequisites
-- **Node.js**: `v22.5.0` or higher (`v24.21.0` recommended for native `node:sqlite` support)
+Before running Roamly locally, ensure you have the following installed:
+
+- **Node.js**: `v22.5.0` or higher (Recommended: `v24.21.0` or latest LTS for full native `node:sqlite` support)
 - **npm**: `v10.0.0` or higher
+- **Git**: Installed and configured
+- **Web Browser**: Modern browser (Google Chrome, Mozilla Firefox, Apple Safari, Microsoft Edge)
 
-### Step 1: Start the Backend API Server
+---
+
+## 8. Local Setup Instructions
+
+Follow these step-by-step instructions to run Roamly locally with a self-contained SQLite database.
+
+### Step 1: Clone the Repository
+```bash
+git clone https://github.com/Shiv27Upadhyay/Roamly.git
+cd Roamly
+```
+
+---
+
+### Step 2: Configure & Start the Backend
+
+Open your **first terminal** window:
+
 1. Navigate to the `backend/` directory:
    ```bash
    cd backend
    ```
-2. Install dependencies:
+
+2. Install backend dependencies:
    ```bash
    npm install
    ```
-3. Create the environment configuration:
+
+3. Create your local environment configuration from the template:
    ```bash
-   # Unix / macOS / PowerShell
+   # Linux / macOS / PowerShell:
    cp .env.example .env
 
-   # Windows Command Prompt
+   # Windows Command Prompt:
    copy .env.example .env
    ```
 
-   **Cloudinary Configuration (for Media Uploads):**
-   To enable photo and video uploads to Cloudinary, add your Cloudinary credentials to `backend/.env`:
-   ```env
-   # Cloudinary Media Storage (Sign up free at https://cloudinary.com)
-   CLOUDINARY_CLOUD_NAME=your_cloud_name
-   CLOUDINARY_API_KEY=your_api_key
-   CLOUDINARY_API_SECRET=your_api_secret
-   ```
-   *Note: General app browsing, itineraries, and test suites operate with zero external dependencies and do not require active Cloudinary credentials.*
+4. *(Optional)* Add your credentials to `backend/.env` if you wish to test Google OAuth or Cloudinary media uploads locally. For standard browsing, trip planning, and tests, the default values operate with zero external dependencies.
 
-4. Launch the backend in development mode:
+5. Start the backend development server:
    ```bash
    npm run dev
    ```
-   The backend API will start on **`http://localhost:5000`**. On first run, it automatically seeds the database with 8 worldwide destinations, 2 users, 3 sample itineraries with 13 stops, bookmarks, likes, and comments.
 
-### Step 2: Start the Frontend Application
-Open a second terminal window:
+   The backend will start on **`http://localhost:5000`**. On initial startup, it automatically creates the local SQLite database (`backend/data/roamly.db`), sets up the schema, and seeds curated destinations, demo travelers, itineraries, and stops.
+
+---
+
+### Step 3: Configure & Start the Frontend
+
+Open your **second terminal** window:
+
 1. Navigate to the `frontend/` directory:
    ```bash
    cd frontend
    ```
-2. Install dependencies:
+
+2. Install frontend dependencies:
    ```bash
    npm install
    ```
-3. Launch the Vite development server:
+
+3. Create your frontend environment configuration:
+   ```bash
+   # Linux / macOS / PowerShell:
+   cp .env.example .env
+
+   # Windows Command Prompt:
+   copy .env.example .env
+   ```
+
+4. Launch the Vite development server:
    ```bash
    npm run dev
    ```
-   Open **`http://localhost:5173`** in your web browser. All `/api` requests are automatically proxied to the backend on port 5000.
 
-### Step 3: Production Build (Optional)
-To verify the production build bundle:
+5. Open **`http://localhost:5173`** in your browser. All API requests (`/api/*`) are automatically proxied by Vite to the backend running on port 5000.
+
+---
+
+### Step 4: Verification & Production Builds
+
+To verify code quality, tests, and production build readiness:
+
 ```bash
-cd frontend
-npm run build
-npm run preview
+# In the backend/ directory:
+npm run test:api       # Runs core API E2E tests (33 tests)
+npm run test:security  # Runs authentication & IDOR security tests (33 tests)
+npm run test:privacy   # Runs trip privacy & authorization tests (42 tests)
+npm run test:groups    # Runs group trips & QR invite tests (53 tests)
+npm run test:media     # Runs photo/video & Cloudinary tests (36 tests)
+npm run test:currency  # Runs currency migration & INR tests (15 tests)
+
+# In the frontend/ directory:
+npm run lint           # Runs Oxlint static analysis
+npm run build          # Builds production Vite client bundle into dist/
 ```
 
 ---
 
-## 7. Verification & Testing
+## 9. Environment Variables & Security
 
-### Automated Backend Test Suites
-Run the isolated, non-mutating test suites covering media, group trips, authentication, and privacy:
+### Backend Environment Variables (`backend/.env`)
+
+| Variable | Description | Default / Example | Required |
+|---|---|---|:---:|
+| `PORT` | Local HTTP port for the Express server | `5000` | No |
+| `NODE_ENV` | Environment mode (`development`, `production`, `test`) | `development` | Yes |
+| `DATABASE_URL` | Neon PostgreSQL pooled connection string with SSL | `postgresql://user:pass@host/db?sslmode=require` | Production only |
+| `DB_PATH` | Path to persistent SQLite database file for local development | `./data/roamly.db` | Local only |
+| `FORCE_SQLITE` | Force SQLite engine even if DATABASE_URL is set | `false` | No |
+| `FRONTEND_URL` | Trusted origin for CORS and dynamic invitation links | `http://localhost:5173` | Yes |
+| `JWT_SECRET` | Secret key for signing session tokens (min 32 chars) | Random 64-char hex string | Yes |
+| `GOOGLE_CLIENT_ID` | OAuth 2.0 Web Client ID for Google Identity Services | `*.apps.googleusercontent.com` | Optional |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud identifier for media storage | Custom string | Optional |
+| `CLOUDINARY_API_KEY` | Cloudinary API access key | Numeric string | Optional |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret for signature generation | Secret string | Optional |
+
+### Frontend Environment Variables (`frontend/.env`)
+
+| Variable | Description | Default / Example | Required |
+|---|---|---|:---:|
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth Web Client ID for the Sign-In button | `*.apps.googleusercontent.com` | Optional |
+
+### Security Practices
+- **No Hardcoded Secrets**: All credentials, tokens, and database connection strings are excluded from Git via `.gitignore`.
+- **Environment Isolation**: Production secrets are managed securely within the Vercel and Render deployment dashboards.
+- **CSRF & Spoofing Defense**: The backend rejects spoofed user headers (`x-user-id`) and validates identity exclusively via signed HttpOnly session cookies.
+
+---
+
+## 10. Database Architecture & Currency Handling
+
+### Dual-Engine Database Design
+Roamly utilizes a hybrid persistence tier designed for cloud deployment and offline test isolation:
+
+1. **Production (Neon PostgreSQL)**:
+   - Hosted on Neon Serverless PostgreSQL with connection pooling (`pg.Pool`).
+   - Handles multi-user relational data with foreign key cascading and transactions.
+2. **Local Development & Testing (Native SQLite)**:
+   - Uses Node.js 24 native `node:sqlite` (`DatabaseSync`).
+   - Enabled with Write-Ahead Logging (`PRAGMA journal_mode = WAL;`) and foreign key enforcement (`PRAGMA foreign_keys = ON;`).
+   - Operates with zero native C++ compiler dependencies.
+
+### Currency System
+- **INR Default**: Indian Rupee (INR, ₹) is the default currency across all views, trip forms, stop costs, and budget calculations.
+- **Indian Numbering Formatting**: Formatted via `Intl.NumberFormat('en-IN')` to display authentic numbering groupings (e.g., `₹2,66,000`, `₹1,28,250`).
+- **Multi-Currency Support**: Preserved support for `USD`, `EUR`, `GBP`, `JPY`, `CAD`, and `AUD`.
+- **Budget Tier Classifications**: Destination budget levels are displayed with Rupee symbols (`₹ Budget`, `₹₹ Moderate`, `₹₹₹ Luxury`).
+
+### USD-to-INR Migration Script
+A dedicated, transactional migration script is provided at `backend/src/scripts/migrateUsdToInr.js`:
+- **Documented Conversion Rate**: Uses a documented, chosen rate of **₹95 = $1**.
+- **Idempotency Guard**: Tracks execution in a persistent `schema_migrations` table; cannot double-convert.
+- **Atomic Rollback**: Executes updates inside a database transaction (`BEGIN` ... `COMMIT`), rolling back completely on error.
+- **Strict Currency Filter**: Only converts records where `currency = 'USD'`. Non-USD records (`EUR`, `INR`, etc.) are preserved.
+- **Zero-Cost Preservation**: Zero-cost stops ($0) convert to exactly ₹0.
+
+> [!NOTE]
+> **Production Status:** The migration script and its test suite have been built, thoroughly tested, and verified via read-only dry-run preview. **The script has not yet been executed against the live production Neon database.**
+
+---
+
+## 11. Testing & Verification
+
+Roamly includes an automated test suite verifying functional requirements, security boundaries, group workflows, and data integrity:
+
+### Test Suites Overview
+
+| Test Suite | File Path | Scope & Assertions | Assertions |
+|---|---|---|:---:|
+| **API End-to-End** | `backend/test/api_test.js` | Routing, destinations catalog, trips CRUD, bookmarks, likes, comments, author aggregations, and disk persistence | 33 |
+| **Auth & Security** | `backend/test/auth_security_test.js` | Google OAuth token verification, session cookies, IDOR/BOLA protection, spoofing rejection, and CSRF origin gates | 33 |
+| **Trip Privacy** | `backend/test/trip_privacy_test.js` | Public/Unlisted/Private isolation, 32-char share token validation, uniform 404 leak prevention, and feed filtering | 42 |
+| **Group Trips** | `backend/test/group_trip_test.js` | Alphanumeric invite codes (`ROAM-XXXX`), dynamic QR generation, member roles, invite rotation, and rate limiting | 53 |
+| **Trip Media** | `backend/test/trip_media_test.js` | Signed Cloudinary upload authorization, size/duration caps, photo/video isolation, and companion permissions | 36 |
+| **Currency Migration** | `backend/test/currency_migration_test.js` | ₹95 conversion math, stops sum equality, $0 preservation, repeat execution idempotency, rollback, and INR defaults | 15 |
+
+### Running the Tests
+Execute the suites individually or sequentially:
 ```bash
 cd backend
-
-# Media Uploads & Cloudinary Integration (36 tests)
-npm run test:media
-
-# Group Trips, Invite Codes & Dynamic QR (53 tests)
-npm run test:groups
-
-# Authentication, Google OAuth & Identity Security (33 tests)
+npm run test:api
 npm run test:security
-
-# Itinerary Privacy, Unlisted Tokens & Authorization (42 tests)
 npm run test:privacy
-```
-**Total Backend Test Coverage:** 164 passing tests across isolated test environments without touching `roamly.db`.
-
-### Frontend Code Quality & Build Verification
-```bash
-cd frontend
-
-# Run Oxlint static analysis
-npm run lint
-
-# Run production Vite build
-npm run build
-```
-- Database persistence across server restarts.
-
-Expected result:
-```text
-========================================
-TEST RESULTS: 33/33 PASSED (0 FAILED)
-========================================
+npm run test:groups
+npm run test:media
+npm run test:currency
 ```
 
-### Frontend Code Quality & Linting
-Run the frontend linter:
-```bash
-cd frontend
-npm run lint
-```
-Executes `oxlint` with React Hooks and component rules across all frontend source files (0 errors).
+### Latest Reported Verification
+The latest automated verification reported:
+- **212 / 212 passing automated backend tests** across all six test suites.
+- **Frontend Code Quality**: Oxlint static analysis passing across all 38 files (0 errors).
+- **Frontend Production Build**: Vite production client bundle compiled in under 2 seconds (0 errors).
+
+*(Reported as the latest verification run; individual local environments may vary based on Node.js versions and dependencies).*
 
 ---
 
-## 8. Application Screenshots & Visual Tour
+## 12. Deployment Architecture
 
-The application views below were captured directly from the live Roamly application running locally (`http://localhost:5173`) with the backend API service (`http://localhost:5000`):
+Roamly is deployed across specialized cloud infrastructure:
 
-### View 1: Editorial Homepage (`/`)
-- **Route**: `/`
-- **Key Features Highlighted**: Brand manifesto, quick destination search bar, continent spotlight carousel, trending community itineraries with like counts and author attribution.
-
-![Editorial Homepage](docs/screenshots/01_homepage_hero_and_spotlights.png)
-
----
-
-### View 2: Curated Destinations Catalog (`/destinations`)
-- **Route**: `/destinations`
-- **Key Features Highlighted**: Live keyword search, Continent filter pills (`Europe`, `Asia`, `Americas`, etc.), Budget tier indicators (`$`, `$$`, `$$$`), and instant wishlist bookmark toggles.
-
-![Curated Destinations Catalog](docs/screenshots/02_destinations_catalog_and_filters.png)
+- **Frontend Hosting (Vercel)**:
+  - **URL**: [https://roamly-ruby.vercel.app](https://roamly-ruby.vercel.app)
+  - Configured via `frontend/vercel.json` with reverse-proxy rewrites routing `/api/:path*` to the Render backend service.
+  - Catch-all SPA rewrite (`/:path* -> /index.html`) ensures direct deep linking to routes like `/trips/:id` and `/trips/join`.
+- **Backend API Hosting (Render)**:
+  - **URL**: `https://roamly-ax2g.onrender.com`
+  - Node.js Express web service running in production mode.
+  - Native integration with the Neon PostgreSQL connection pool.
+- **Database (Neon Serverless PostgreSQL)**:
+  - Serverless PostgreSQL instance hosted in AWS `ap-southeast-1`.
+  - Pooled connections via `pg.Pool` with SSL encryption.
 
 ---
 
-### View 3: Destination Detail Page (`/destinations/:id`)
-- **Route**: `/destinations/1` (Kyoto, Japan)
-- **Key Features Highlighted**: Immersive cover hero imagery, narrative editorial overview, optimal travel season, budget tier classification, and interactive wishlist bookmarking.
+## 13. Limitations & Future Roadmap
 
-![Destination Detail Page](docs/screenshots/03_destination_detail_guide.png)
-
----
-
-### View 4: Community Itineraries Directory (`/trips`)
-- **Route**: `/trips`
-- **Key Features Highlighted**: Community itinerary listing, travel dates, destination association, total stops counter, estimated budget badges, and live like counters.
-
-![Community Itineraries Directory](docs/screenshots/04_trips_directory.png)
+- **Production Currency Migration**: The USD-to-INR database migration script is tested and dry-run verified, ready for execution on the production database.
+- **Live AI Integration**: The Smart Search and Smart Memories interfaces are currently concept prototypes with sample queries and previews; connecting live LLM inference (e.g., Google Gemini API) is slated for the next phase.
+- **Caching Layer**: Introducing Redis caching for high-traffic destination catalog browsing to reduce database round-trips.
 
 ---
 
-### View 5: Day-by-Day Itinerary Detail (`/trips/:id`)
-- **Route**: `/trips/1` (Autumn Light & Kaiseki in Kyoto)
-- **Key Features Highlighted**: Chronological day-by-day stops timeline with category badges (`Stay`, `Food`, `Culture`, etc.), author profile card, interactive like counter, author-only Edit/Delete controls, and discussion comments feed.
+## 14. Author & Project Information
 
-![Day-by-Day Itinerary Detail](docs/screenshots/05_trip_detail_and_discussion.png)
-
----
-
-### View 6: Trip Creation & Itinerary Editor (`/trips/new`)
-- **Route**: `/trips/new`
-- **Key Features Highlighted**: Complete trip authoring form, curated destination selector, start/end date validation, currency and budget inputs, cover image URL, and dynamic day-by-day stops editor with real-time budget summation.
-
-![Trip Creation & Itinerary Editor](docs/screenshots/06_trip_creator_and_stops_editor.png)
-
----
-
-### View 7: User Profile Dashboard (`/profile`)
-- **Route**: `/profile`
-- **Key Features Highlighted**: Active demo user profile (`Elena Rostova`), avatar, bio, home city, aggregate travel stats (itineraries created, saved wishlists), and tabbed views for "My Planned Itineraries" and "Saved Wishlist".
-
-![User Profile Dashboard](docs/screenshots/07_user_profile_and_wishlist.png)
-
----
-
-## 9. REST API Reference
-
-All backend routes are mounted under `/api` and respond with standardized JSON:
-
-| Method | Endpoint | Description | Auth / Owner Required |
-| :--- | :--- | :--- | :---: |
-| `GET` | `/` | Root welcome endpoint returning API status, version, and health link | No |
-| `GET` | `/api/health` | Health check returning service status and active demo user | No |
-| `GET` | `/api/destinations` | List destinations with optional `search`, `continent`, `budget_tier` filters | No |
-| `GET` | `/api/destinations/:id` | Get single destination by ID with associated itineraries | No |
-| `POST` | `/api/destinations/:id/bookmark` | Toggle saved wishlist bookmark for active user | Yes (`x-user-id`) |
-| `GET` | `/api/bookmarks` | List all saved destinations for active user | Yes (`x-user-id`) |
-| `GET` | `/api/trips` | List itineraries with optional `search`, `destination_id`, `user_id` filters | No |
-| `GET` | `/api/trips/:id` | Get trip details with day-by-day stops, comments, and like status | No |
-| `POST` | `/api/trips` | Create new trip with optional day-by-day stops (atomic transaction) | Yes (`x-user-id`) |
-| `PUT` | `/api/trips/:id` | Update existing trip and synchronize stops | **Owner Only** (403 if mismatched) |
-| `DELETE` | `/api/trips/:id` | Delete trip (cascades to stops, likes, comments) | **Owner Only** (403 if mismatched) |
-| `POST` | `/api/trips/:id/like` | Toggle like status on an itinerary | Yes (`x-user-id`) |
-| `POST` | `/api/trips/:id/comments` | Post a new comment on an itinerary | Yes (`x-user-id`) |
-| `DELETE` | `/api/comments/:id` | Delete a comment | **Author Only** (403 if mismatched) |
-| `GET` | `/api/trips/:id/media` | Get separated photos and videos for a trip | Owner or Group Member (or public/valid token) |
-| `POST` | `/api/trips/:id/media/signature` | Request signed upload parameters for Cloudinary | **Owner or Group Member** (403 if outsider) |
-| `POST` | `/api/trips/:id/media` | Register verified media metadata in itinerary | **Owner or Group Member** (403 if outsider) |
-| `DELETE` | `/api/trips/:id/media/:mediaId` | Delete media asset from Cloudinary and itinerary | **Uploader or Owner Only** |
-| `GET` | `/api/trips/:id/group` | Get group companions and invite credentials | Owner or Group Member |
-| `POST` | `/api/trips/:id/group` | Create group companion workspace | **Trip Owner Only** |
-| `GET` | `/api/trips/:id/group/qr` | Generate dynamic QR code for invitation | **Trip Owner Only** |
-| `POST` | `/api/groups/join` | Join trip group via invite code or token | Authenticated User |
-| `POST` | `/api/profile` | Get active user profile, stats, created trips, and bookmarks | Yes (`x-user-id` / session) |
-| `GET` | `/api/profile/:id` | Get profile for specific user ID | No |
-
----
-
-## 10. Editorial Design System Tokens
-
-Located at `frontend/src/styles/variables.css`:
-
-```css
-:root {
-  /* Core Editorial Palette */
-  --color-ivory: #FAF7F2;              /* Warm parchment background */
-  --color-sand: #EFE9DF;               /* Secondary container and pill surface */
-  --color-sand-hover: #E4DDD1;
-  --color-ink: #1C2421;                /* High-contrast deep slate text */
-  --color-ink-muted: #53625D;          /* Secondary descriptive body copy */
-  --color-ink-faint: #8B9A95;          /* Subtle metadata and borders */
-  --color-terracotta: #D06A4C;         /* Primary brand accent */
-  --color-terracotta-hover: #B7563A;
-  --color-sage: #4F6352;               /* Organic secondary accent */
-  --color-ochre: #D99E4B;              /* Warm golden highlight */
-  --color-border: #E4DDD3;
-
-  /* Typography */
-  --font-serif: 'Fraunces', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
-  --font-mono: ui-monospace, Menlo, Consolas, monospace;
-
-  /* Component Metrics */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  --radius-pill: 9999px;
-  --max-width: 1280px;
-}
-```
+- **Developer**: **Shiv Upadhyay**
+- **Project**: Roamly Travel Discovery & Planning Platform
+- **Assignment**: Full Stack Developer Internship Technical Assignment (Rewamp Digital)
+- **GitHub Repository**: [https://github.com/Shiv27Upadhyay/Roamly](https://github.com/Shiv27Upadhyay/Roamly)
+- **Live Website**: [https://roamly-ruby.vercel.app/](https://roamly-ruby.vercel.app/)
+- **Demo Video**: [https://drive.google.com/file/d/1iK21h2vJ4z_-nazSUFWEC1W4dzz_OyK0/view?usp=sharing](https://drive.google.com/file/d/1iK21h2vJ4z_-nazSUFWEC1W4dzz_OyK0/view?usp=sharing)
+- **License**: ISC
