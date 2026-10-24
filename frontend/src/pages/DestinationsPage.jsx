@@ -11,9 +11,9 @@ import ErrorBanner from '../components/common/ErrorBanner';
 const CONTINENTS = ['All', 'Europe', 'Asia', 'Americas', 'Africa', 'Oceania'];
 const BUDGET_TIERS = [
   { label: 'All Budgets', value: 'All' },
-  { label: '$ Budget', value: '$' },
-  { label: '$$ Moderate', value: '$$' },
-  { label: '$$$ Luxury', value: '$$$' }
+  { label: '₹ Budget', value: '$' },
+  { label: '₹₹ Moderate', value: '$$' },
+  { label: '₹₹₹ Luxury', value: '$$$' }
 ];
 
 export default function DestinationsPage() {

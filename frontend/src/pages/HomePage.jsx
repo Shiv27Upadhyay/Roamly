@@ -8,6 +8,7 @@ import { GridSkeleton } from '../components/common/LoadingSkeleton';
 import ErrorBanner from '../components/common/ErrorBanner';
 import heroImage from '../assets/hero.png';
 import CinematicDestinationExperience from '../components/home/CinematicDestinationExperience';
+import { formatCurrency } from '../utils/currency';
 
 const CINEMATIC_INTRO_KEY = 'roamly_cinematic_intro_seen';
 
@@ -408,7 +409,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div style={{ color: 'rgba(250,247,242,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Budget</div>
-                  <div style={{ color: '#fff', fontWeight: 600 }}>${Number(editorTrip.estimated_budget || 0).toLocaleString()} USD</div>
+                  <div style={{ color: '#fff', fontWeight: 600 }}>{formatCurrency(editorTrip.estimated_budget, editorTrip.currency || 'INR')}</div>
                 </div>
                 <div>
                   <div style={{ color: 'rgba(250,247,242,0.5)', fontSize: '0.75rem', textTransform: 'uppercase' }}>Itinerary Stops</div>

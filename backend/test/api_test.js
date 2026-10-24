@@ -194,7 +194,7 @@ async function runTestSuite() {
       destination_id: 4,
       start_date: '2026-12-10',
       end_date: '2026-12-17',
-      currency: 'USD',
+      currency: 'INR',
       estimated_budget: 3100,
       notes: 'Glacier trekking, black sand beach sunrise, and geothermal lagoon bathing.',
       stops: [
@@ -453,7 +453,7 @@ async function runTestSuite() {
         destination_id: 1,
         start_date: '2026-11-20',
         end_date: '2026-11-25',
-        currency: 'USD',
+        currency: 'INR',
         estimated_budget: 1850,
         notes: 'Created specifically to verify that data survives a full server shutdown and restart.'
       }

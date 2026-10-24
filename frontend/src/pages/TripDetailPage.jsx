@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   Calendar,
   MapPin,
-  DollarSign,
+  IndianRupee,
   Heart,
   MessageSquare,
   Edit3,
@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import { DetailSkeleton } from '../components/common/LoadingSkeleton';
+import { formatCurrency } from '../utils/currency';
 import ShareJourneyModal from '../components/trips/ShareJourneyModal';
 import GroupInviteModal from '../components/trips/GroupInviteModal';
 import MediaUploadModal from '../components/trips/MediaUploadModal';
@@ -488,8 +489,8 @@ export default function TripDetailPage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <DollarSign size={16} color="var(--color-sage)" />
-              <span>Budget: ${Number(trip.estimated_budget || 0).toLocaleString()} {trip.currency}</span>
+              <IndianRupee size={16} color="var(--color-sage)" />
+              <span>Budget: {formatCurrency(trip.estimated_budget, trip.currency || 'INR')}</span>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -594,7 +595,7 @@ export default function TripDetailPage() {
 
                               {stop.cost > 0 && (
                                 <div style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--color-ink)', whiteSpace: 'nowrap' }}>
-                                  ${Number(stop.cost).toLocaleString()}
+                                  {formatCurrency(stop.cost, trip.currency || 'INR')}
                                 </div>
                               )}
                             </div>
@@ -618,7 +619,7 @@ export default function TripDetailPage() {
                   marginTop: 'var(--space-6)'
                 }}>
                   <span>Sum of scheduled stops:</span>
-                  <strong>${Number(trip.stops_total_cost || 0).toLocaleString()} {trip.currency}</strong>
+                  <strong>{formatCurrency(trip.stops_total_cost, trip.currency || 'INR')}</strong>
                 </div>
               )}
             </section>

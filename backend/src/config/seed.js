@@ -134,8 +134,8 @@ const TRIPS = [
     title: 'Autumn Light & Kaiseki in Kyoto',
     start_date: '2026-11-04',
     end_date: '2026-11-10',
-    currency: 'USD',
-    estimated_budget: 2800,
+    currency: 'INR',
+    estimated_budget: 266000,
     cover_image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80',
     notes: 'Focus on early morning temple walks before crowds arrive, traditional ceramic studio visits in Gojozaka, and seasonal autumn kaiseki dinners.'
   },
@@ -146,8 +146,8 @@ const TRIPS = [
     title: 'Coastal Drift: Amalfi to Positano',
     start_date: '2026-06-12',
     end_date: '2026-06-17',
-    currency: 'USD',
-    estimated_budget: 3400,
+    currency: 'INR',
+    estimated_budget: 323000,
     cover_image: 'https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=80',
     notes: 'Traversing the cliff trails, chartered wooden boat along the coast of Capri, and tracing old lemon paths through Minori and Ravello.'
   },
@@ -158,8 +158,8 @@ const TRIPS = [
     title: 'Clay, Color & Copal: Oaxaca Valley',
     start_date: '2026-10-28',
     end_date: '2026-11-03',
-    currency: 'USD',
-    estimated_budget: 1350,
+    currency: 'INR',
+    estimated_budget: 128250,
     cover_image: 'https://images.unsplash.com/photo-1512813195386-6cf811ad3542?auto=format&fit=crop&w=1200&q=80',
     notes: 'Exploring the artisan communities of San Bartolo Coyotepec and Teotitlán del Valle, sampling mole negro, and witnessing Day of the Dead vigils.'
   }
@@ -172,7 +172,7 @@ const TRIP_STOPS = [
     day_number: 1,
     place_name: 'Daitoku-ji Zen Garden & Tea Ceremony',
     category: 'Culture',
-    cost: 45,
+    cost: 4275,
     notes: 'Private morning tea ceremony inside a 16th-century sub-temple with master Hojun.',
     sort_order: 1
   },
@@ -181,7 +181,7 @@ const TRIP_STOPS = [
     day_number: 1,
     place_name: 'Gion Karyo (Autumn Kaiseki)',
     category: 'Food',
-    cost: 160,
+    cost: 15200,
     notes: 'Seasonal multi-course dining featuring matsutake broth and Kyoto autumn vegetables.',
     sort_order: 2
   },
@@ -190,7 +190,7 @@ const TRIP_STOPS = [
     day_number: 2,
     place_name: 'Otagi Nenbutsu-ji & Sagano Bamboo Grove',
     category: 'Nature',
-    cost: 20,
+    cost: 1900,
     notes: 'Explore 1,200 whimsical stone rakan sculptures tucked deep in the northern hills.',
     sort_order: 1
   },
@@ -199,7 +199,7 @@ const TRIP_STOPS = [
     day_number: 2,
     place_name: 'Ryokan Sawaya Honten',
     category: 'Stay',
-    cost: 280,
+    cost: 26600,
     notes: 'Traditional tatami accommodation with cedar cypress baths and cypress aroma.',
     sort_order: 2
   },
@@ -208,7 +208,7 @@ const TRIP_STOPS = [
     day_number: 3,
     place_name: 'Kiyomizu-yaki Ceramic Studio Workshop',
     category: 'Activity',
-    cost: 95,
+    cost: 9025,
     notes: 'Wheel-throwing session crafting handmade matcha bowls in Gojozaka pottery district.',
     sort_order: 1
   },
@@ -219,7 +219,7 @@ const TRIP_STOPS = [
     day_number: 1,
     place_name: 'Villa Maria Terrazza, Ravello',
     category: 'Stay',
-    cost: 420,
+    cost: 39900,
     notes: 'Cliffside heritage stay with private balcony overlooking the Mediterranean.',
     sort_order: 1
   },
@@ -237,7 +237,7 @@ const TRIP_STOPS = [
     day_number: 2,
     place_name: 'Trattoria Da Adolfo (Laurito Beach)',
     category: 'Food',
-    cost: 110,
+    cost: 10450,
     notes: 'Lakeside red-fish boat transfer to quiet cove for grilled mozzarella in lemon leaves.',
     sort_order: 2
   },
@@ -246,7 +246,7 @@ const TRIP_STOPS = [
     day_number: 3,
     place_name: 'Private Gozzo Boat to Faraglioni, Capri',
     category: 'Activity',
-    cost: 380,
+    cost: 36100,
     notes: 'Four-hour wooden boat excursion swimming in secret sea grottos.',
     sort_order: 1
   },
@@ -257,7 +257,7 @@ const TRIP_STOPS = [
     day_number: 1,
     place_name: 'Hotel Los Amantes Oaxaca',
     category: 'Stay',
-    cost: 180,
+    cost: 17100,
     notes: 'Colonial boutique hotel with views of Santo Domingo church spires.',
     sort_order: 1
   },
@@ -266,7 +266,7 @@ const TRIP_STOPS = [
     day_number: 1,
     place_name: 'Pasillo de Humo (Smoke Hall Market)',
     category: 'Food',
-    cost: 25,
+    cost: 2375,
     notes: 'Tasajo, cecina, grilled scallions, and handmade heirloom tortillas hot off the comal.',
     sort_order: 2
   },
@@ -275,7 +275,7 @@ const TRIP_STOPS = [
     day_number: 2,
     place_name: 'Monte Albán Sunrise Tour',
     category: 'Culture',
-    cost: 40,
+    cost: 3800,
     notes: 'Ancient Zapotec ceremonial acropolis rising above the Oaxaca valley basin.',
     sort_order: 1
   },
@@ -284,7 +284,7 @@ const TRIP_STOPS = [
     day_number: 2,
     place_name: 'Traditional Palenque Mezcal Tasting, Matatlán',
     category: 'Activity',
-    cost: 65,
+    cost: 6175,
     notes: 'Wild agave varietals (Tobalá, Tepeztate) distilled in clay pot stills.',
     sort_order: 2
   }

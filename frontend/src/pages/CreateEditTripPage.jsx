@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { PlusCircle, Trash2, ArrowLeft, Save, AlertCircle, Calendar, DollarSign, Layers } from 'lucide-react';
+import { PlusCircle, Trash2, ArrowLeft, Save } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -9,7 +9,7 @@ import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 import TripPrivacySelector from '../components/trips/TripPrivacySelector';
 
 const STOP_CATEGORIES = ['Culture', 'Food', 'Stay', 'Nature', 'Activity', 'Transit'];
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
 
 export default function CreateEditTripPage() {
   const { id } = useParams();
@@ -29,7 +29,7 @@ export default function CreateEditTripPage() {
     destination_id: preSelectedDestinationId ? Number(preSelectedDestinationId) : '',
     start_date: '',
     end_date: '',
-    currency: 'USD',
+    currency: 'INR',
     estimated_budget: '',
     cover_image: '',
     notes: '',
@@ -80,7 +80,7 @@ export default function CreateEditTripPage() {
           destination_id: t.destination_id || '',
           start_date: t.start_date || '',
           end_date: t.end_date || '',
-          currency: t.currency || 'USD',
+          currency: t.currency || 'INR',
           estimated_budget: t.estimated_budget !== undefined ? String(t.estimated_budget) : '',
           cover_image: t.cover_image || '',
           notes: t.notes || '',
@@ -396,7 +396,7 @@ export default function CreateEditTripPage() {
                 min="0"
                 step="50"
                 className={`form-input ${errors.estimated_budget ? 'has-error' : ''}`}
-                placeholder="e.g. 2500"
+                placeholder="e.g. 150000"
                 value={formData.estimated_budget}
                 onChange={handleInputChange}
               />
@@ -554,7 +554,7 @@ export default function CreateEditTripPage() {
                 {/* Cost */}
                 <div>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--color-ink-muted)', display: 'block', marginBottom: '2px' }}>
-                    Cost ($)
+                    Cost ({formData.currency || 'INR'})
                   </label>
                   <input
                     type="number"

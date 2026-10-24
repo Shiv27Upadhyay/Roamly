@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Bookmark, MapPin, Calendar, DollarSign, PlusCircle, ArrowLeft, Layers, Heart, MessageSquare } from 'lucide-react';
+import { Bookmark, MapPin, Calendar, IndianRupee, PlusCircle, ArrowLeft, Layers, Heart, MessageSquare } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { DetailSkeleton } from '../components/common/LoadingSkeleton';
 import ErrorBanner from '../components/common/ErrorBanner';
+import { formatCurrency, formatBudgetTier } from '../utils/currency';
 
 export default function DestinationDetailPage() {
   const { id } = useParams();
@@ -119,7 +120,7 @@ export default function DestinationDetailPage() {
               {destination.continent}
             </span>
             <span className="badge badge-ochre" style={{ background: 'rgba(217,158,75,0.9)', color: 'var(--color-ink)' }}>
-              {destination.budget_tier} Tier
+              {formatBudgetTier(destination.budget_tier)} Tier
             </span>
           </div>
 
@@ -208,7 +209,7 @@ export default function DestinationDetailPage() {
                         <div style={{ fontSize: '0.85rem', color: 'var(--color-ink-muted)', display: 'flex', gap: '12px' }}>
                           <span>By {trip.author_name}</span>
                           <span>•</span>
-                          <span>${Number(trip.estimated_budget || 0).toLocaleString()} {trip.currency}</span>
+                          <span>{formatCurrency(trip.estimated_budget, trip.currency || 'INR')}</span>
                         </div>
                       </div>
 
@@ -258,11 +259,11 @@ export default function DestinationDetailPage() {
                     Budget Classification
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '1rem', fontWeight: 500, marginTop: '2px' }}>
-                    <DollarSign size={16} color="var(--color-sage)" />
+                    <IndianRupee size={16} color="var(--color-sage)" />
                     <span>
-                      {destination.budget_tier === '$' && '$ (Budget Friendly)'}
-                      {destination.budget_tier === '$$' && '$$ (Moderate Range)'}
-                      {destination.budget_tier === '$$$' && '$$$ (Luxury / Premium)'}
+                      {destination.budget_tier === '$' && '₹ (Budget Friendly)'}
+                      {destination.budget_tier === '$$' && '₹₹ (Moderate Range)'}
+                      {destination.budget_tier === '$$$' && '₹₹₹ (Luxury / Premium)'}
                     </span>
                   </div>
                 </div>

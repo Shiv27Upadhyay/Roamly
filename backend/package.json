@@ -12,7 +12,9 @@
     "test:privacy": "node test/trip_privacy_test.js",
     "test:groups": "node test/group_trip_test.js",
     "test:media": "node test/trip_media_test.js",
-    "test:neon": "node test/neon_integration_test.js"
+    "test:neon": "node test/neon_integration_test.js",
+    "test:currency": "node test/currency_migration_test.js",
+    "migrate:currency": "node src/scripts/migrateUsdToInr.js"
   },
   "keywords": [
     "travel",

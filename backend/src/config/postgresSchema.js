@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS trips (
   title TEXT NOT NULL,
   start_date TEXT NOT NULL,
   end_date TEXT NOT NULL,
-  currency TEXT NOT NULL DEFAULT 'USD',
+  currency TEXT NOT NULL DEFAULT 'INR',
   estimated_budget DOUBLE PRECISION NOT NULL DEFAULT 0,
   cover_image TEXT,
   notes TEXT,

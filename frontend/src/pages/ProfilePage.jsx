@@ -20,6 +20,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyState from '../components/common/EmptyState';
 import ErrorBanner from '../components/common/ErrorBanner';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
+import { formatCurrency } from '../utils/currency';
 
 export default function ProfilePage() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -346,7 +347,7 @@ export default function ProfilePage() {
                     </h3>
 
                     <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem', color: 'var(--color-ink-muted)' }}>
-                      <span>Budget: ${Number(t.estimated_budget || 0).toLocaleString()} {t.currency}</span>
+                      <span>Budget: {formatCurrency(t.estimated_budget, t.currency || 'INR')}</span>
                       <span>•</span>
                       <span>{t.stops_count || 0} scheduled stops</span>
                       <span>•</span>

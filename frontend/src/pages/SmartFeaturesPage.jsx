@@ -19,6 +19,7 @@ import {
   Heart,
   Image as ImageIcon
 } from 'lucide-react';
+import { formatBudgetTier } from '../utils/currency';
 
 // Sample demo trips for Smart Memories
 const DEMO_TRIPS = [
@@ -272,7 +273,7 @@ const INTEREST_CHIPS = [
   { label: 'Mountains & Alpine', icon: '🏔️', query: 'peaceful mountain hiking trails with alpine lake vistas' },
   { label: 'Coastal & Beaches', icon: '🏖️', query: 'picturesque coastal road trip with cliffside dining' },
   { label: 'Heritage & Culture', icon: '🏛️', query: 'historic temples, preservation districts, and artisan crafts' },
-  { label: 'Budget Getaways', icon: '💰', query: 'budget-friendly destinations under $1,200 total estimated spend' },
+  { label: 'Budget Getaways', icon: '💰', query: 'budget-friendly destinations under ₹1,00,000 total estimated spend' },
   { label: 'Culinary Traditions', icon: '🍜', query: 'renowned street markets and traditional tasting experiences' },
   { label: 'Nature & Escapes', icon: '🌿', query: 'quiet forest walks, scenic hot springs, and tranquil landscapes' }
 ];
@@ -280,7 +281,7 @@ const INTEREST_CHIPS = [
 // Example search prompts
 const EXAMPLE_PROMPTS = [
   'Quiet 5-day cultural trip to Japan with historic temples and great matcha',
-  'Mediterranean coastal road trip with cliffside views under $1,800',
+  'Mediterranean coastal road trip with cliffside views under ₹1,50,000',
   'Alpine hiking getaway with panoramic mountain trails and lake viewpoints',
   'Vibrant culinary escape exploring authentic street markets and local cafes'
 ];
@@ -1409,7 +1410,7 @@ export default function SmartFeaturesPage() {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: 'var(--color-ink-muted)', marginBottom: '8px' }}>
-                          <span>{dest.budgetTier} Budget</span>
+                          <span>{formatBudgetTier(dest.budgetTier)} Budget</span>
                           <span>•</span>
                           <span>{dest.bestSeason}</span>
                         </div>

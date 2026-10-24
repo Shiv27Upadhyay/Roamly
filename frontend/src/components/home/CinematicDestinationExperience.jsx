@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { Link } from 'react-router-dom';
 import { Sparkles, MapPin, ArrowRight, Heart, Compass, ChevronDown, X } from 'lucide-react';
 import heroImage from '../../assets/hero.png';
+import { formatBudgetTier } from '../../utils/currency';
 
 /**
  * Derives top 3 destinations based strictly on verifiable itinerary likes.
@@ -207,7 +208,7 @@ export default function CinematicDestinationExperience({
                   />
                   <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: '6px' }}>
                     <span className="badge badge-ochre">{dest.continent}</span>
-                    <span className="badge badge-sand">{dest.budget_tier}</span>
+                    <span className="badge badge-sand">{formatBudgetTier(dest.budget_tier)}</span>
                   </div>
                 </div>
                 <div className="card-body">
@@ -584,7 +585,7 @@ export default function CinematicDestinationExperience({
 
                       <div className="cinematic-face-front-footer">
                         <span>{c.dest.season}</span>
-                        <span>Budget Tier {c.dest.budget_tier}</span>
+                        <span>Budget Tier {formatBudgetTier(c.dest.budget_tier)}</span>
                       </div>
                     </div>
 
@@ -613,7 +614,7 @@ export default function CinematicDestinationExperience({
                         </div>
 
                         <span className="badge badge-sand" style={{ fontSize: '0.725rem' }}>
-                          {c.dest.budget_tier}
+                          {formatBudgetTier(c.dest.budget_tier)}
                         </span>
                       </div>
 

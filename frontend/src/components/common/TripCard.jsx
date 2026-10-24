@@ -4,6 +4,7 @@ import { Heart, MessageSquare, Calendar, MapPin, Layers } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { formatCurrency } from '../../utils/currency';
 
 export default function TripCard({ trip, onLikeToggle }) {
   const [isLiked, setIsLiked] = useState(trip.is_liked);
@@ -100,7 +101,7 @@ export default function TripCard({ trip, onLikeToggle }) {
         {/* Budget Pill */}
         <div style={{ position: 'absolute', bottom: '12px', right: '12px', pointerEvents: 'none' }}>
           <span className="badge badge-ochre" style={{ background: 'rgba(28,36,33,0.85)', color: '#FAF7F2', border: 'none' }}>
-            ${Number(trip.estimated_budget || 0).toLocaleString()} {trip.currency || 'USD'}
+            {formatCurrency(trip.estimated_budget, trip.currency || 'INR')}
           </span>
         </div>
       </div>

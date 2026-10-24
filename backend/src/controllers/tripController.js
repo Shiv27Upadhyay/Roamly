@@ -228,7 +228,7 @@ async function createTrip(req, res, next) {
       destination_id,
       start_date,
       end_date,
-      currency = 'USD',
+      currency = 'INR',
       estimated_budget = 0,
       cover_image,
       notes,
